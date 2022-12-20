@@ -35,6 +35,8 @@ from gym_pybullet_drones.control.SimplePIDControl import SimplePIDControl
 from gym_pybullet_drones.utils.Logger import Logger
 from gym_pybullet_drones.utils.utils import sync, str2bool
 
+from mpc_controller import *
+
 DEFAULT_DRONES = DroneModel("cf2x")
 DEFAULT_NUM_DRONES = 1
 DEFAULT_PHYSICS = Physics("pyb")
@@ -46,8 +48,8 @@ DEFAULT_USER_DEBUG_GUI = False
 DEFAULT_AGGREGATE = True
 DEFAULT_OBSTACLES = False
 DEFAULT_SIMULATION_FREQ_HZ = 240
-DEFAULT_CONTROL_FREQ_HZ = 48
-DEFAULT_DURATION_SEC = 20
+DEFAULT_CONTROL_FREQ_HZ = 60
+DEFAULT_DURATION_SEC = 60
 DEFAULT_OUTPUT_FOLDER = 'results'
 DEFAULT_COLAB = False
 DEFAULT_LOG = False
@@ -141,6 +143,13 @@ def resample(orig_path, max_distance = 0.2):
         return resampled_path
 
 
+def time_parametrize(path, velocity = 0.1):
+    t = np.zeros(path.shape[0])
+    for i in range(1, path.shape[0]):
+        t[i] = t[i-1] + np.linalg.norm(path[i,:] - path[i-1,:]) / velocity
+    return path, t
+
+
 def run(settings: SimulationSettings):
     # spherical obstacles (x,y,z,radius)
     sphereObstacles = [(1., 1., 1., .5), (3., 4., 5., 1.),
@@ -156,11 +165,16 @@ def run(settings: SimulationSettings):
                            (10.0, 5.0, 5.0)])
 
     target_path = resample(target_path)
+    target_path, target_time = time_parametrize(target_path)
+    target_vel = np.zeros((3,30))
+    target_rpy = np.zeros((3,30))
+    target_rpy_rates = np.zeros((3,30))
     number_wp = target_path.shape[0]
 
     # Inital Positions
     init_xyzs = np.array([target_path[0, :]
                          for i in range(settings.num_drones)])
+    init_xyzs[0,:] = [0, 0, 1]
     init_rpys = np.array([[0, 0,  i * (np.pi/2)/settings.num_drones]
                          for i in range(settings.num_drones)])
 
@@ -174,8 +188,9 @@ def run(settings: SimulationSettings):
 
     # Plot waypoints (only for debugging)
     tmp = p.createVisualShape(p.GEOM_SPHERE, radius=0.025)
-    for wp in target_path:
-        p.createMultiBody(0, -1, tmp, wp[0:3])
+    # for wp in target_path:
+    #     p.createMultiBody(0, -1, tmp, wp[0:3])
+    p.createMultiBody(0, -1, tmp, np.array([0.5, 1, 2]))
 
     wp_counters = np.array([int((i*number_wp/6) % number_wp)
                            for i in range(settings.num_drones)])
@@ -188,6 +203,9 @@ def run(settings: SimulationSettings):
     elif settings.drone in [DroneModel.HB]:
         ctrl = [SimplePIDControl(drone_model=settings.drone)
                 for i in range(settings.num_drones)]
+    ctrl = [MPCControl(drone_model=settings.drone, )
+                for i in range(settings.num_drones)]
+
 
     # Run the simulation
     CTRL_EVERY_N_STEPS = int(np.floor(env.SIM_FREQ/settings.control_freq_hz))
@@ -210,15 +228,17 @@ def run(settings: SimulationSettings):
                     current_state[0:3] - target_path[wp_counters[j], :])
                 if error < ERROR_THRESHOLD:
                     wp_counters[j] = wp_counters[j] + \
-                        1 if wp_counters[j] < (number_wp-1) else 0
+                        1 if wp_counters[j] < (number_wp-1) else number_wp-1
 
                 # compute control action
-                action[str(j)], _, _ = ctrl[j].computeControlFromState(control_timestep=CTRL_EVERY_N_STEPS*env.TIMESTEP,
+                action[str(j)], next_pos, _ = ctrl[j].computeControlFromState(control_timestep=CTRL_EVERY_N_STEPS*env.TIMESTEP,
                                                                        state=obs[str(
                                                                            j)]["state"],
-                                                                       target_pos=target_path[wp_counters[j], 0:3],
-                                                                       # target_pos=INIT_XYZS[j, :] + TARGET_POS[wp_counters[j], :],
-                                                                       target_rpy=init_rpys[j, :])
+                                                                       target_pos = target_path[20:50,:].transpose(),
+                                                                       target_rpy = target_rpy,
+                                                                       target_vel = target_vel,
+                                                                       target_rpy_rates = target_rpy_rates)
+                p.createMultiBody(0, 100, tmp, next_pos)
 
         # Log the simulation
         if settings.log:
