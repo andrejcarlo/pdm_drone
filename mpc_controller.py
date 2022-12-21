@@ -13,8 +13,9 @@ class MPCControl(BaseControl):
     def __init__(self,
                  drone_model: DroneModel,
                  g: float = 9.81,
-                 N=30,
-                 timestep_reference=None
+                 N=20,
+                 timestep_reference=None,
+                 timestep_mpc_stages = 0.25
                  ):
         """Common control classes __init__ method.
 
@@ -28,6 +29,7 @@ class MPCControl(BaseControl):
 
         """
         super().__init__(drone_model=drone_model, g=g)
+        self.t_s = timestep_mpc_stages  # time step per stage
         self.N = N
         self._buildModelMatrices()
         self._buildMPCProblem(timestep_reference)
@@ -117,13 +119,12 @@ class MPCControl(BaseControl):
                            [0, 0, 0, -l/I_z]])
 
         # time discretize system
-        self.t_s = 0.5  # time step per stage
         self.A = self.t_s * self.A + np.identity(12)
         self.B = self.t_s * self.B
 
         # weight cost matrices
         self.W_output = np.diag(
-            [5, 5, 5, 0.25, 0.25, 0.25, 1, 1, 1, 0.1, 0.1, 0.1])
+            [5, 5, 5, 0.15, 0.15, 0.15, 1, 1, 1, 0.05, 0.05, 0.05])
         self.W_input = np.identity(4)*0.1
 
     ################################################################################
@@ -140,6 +141,7 @@ class MPCControl(BaseControl):
 
         # Parameters
         opt_vars_per_ref = int(timestep_reference / self.t_s)
+        print(opt_vars_per_ref)
         self.N_ref = math.ceil(self.N / opt_vars_per_ref)
         x_ref = cp.Parameter((12, self.N_ref), name="x_ref")
         x_init = cp.Parameter((12), name="x_init")
@@ -160,6 +162,8 @@ class MPCControl(BaseControl):
                                      x_ref[:, self.N_ref-1], self.W_output)
             else:
                 cost += cp.quad_form(x[:, k+1], W_output2)
+
+            # cost += cp.quad_form(x[:, k+1] - x_ref[:, k], self.W_output)
 
             # Cost
             cost += cp.quad_form(u[:, k], self.W_input)
@@ -307,7 +311,7 @@ class MPCControl(BaseControl):
         """
         # Check inputs
         if target_pos.shape[0] != 3:
-            print("\n[ERROR] MPCController reference has incorrect dimension")
+            print("\n[ERROR] MPCController reference has incorrect dimension (1)")
         if target_vel is None:
             target_vel = np.zeros_like(target_pos)
         if target_rpy is None:
@@ -315,7 +319,7 @@ class MPCControl(BaseControl):
         if target_rpy_rates is None:
             target_rpy_rates = np.zeros_like(target_pos)
         if any(s != target_pos.shape for s in [target_vel.shape, target_rpy.shape, target_rpy_rates.shape]):
-            print("\n[ERROR] MPCController reference has incorrect dimension")
+            print("\n[ERROR] MPCController reference has incorrect dimension (2)")
 
         # Extract next self.N_ref goals from target path
         next_goal_indices = self._getNextGoalIndices(current_time, target_time)

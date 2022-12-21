@@ -74,6 +74,15 @@ class SimulationSettings:
     colab: bool = DEFAULT_COLAB
     log: bool = DEFAULT_LOG
 
+@dataclass
+class Trajectory:
+    number_of_points : int
+    time_points : np.ndarray
+    positions : np.ndarray
+    velocities : np.ndarray
+    orientation_rpy : np.ndarray
+    orientation_rpy_rates : np.ndarray
+
 
 def setup_simulation(settings: SimulationSettings, initial_xyzs: np.array, initial_rpys: np.array):
     aggr_phy_steps = int(settings.simulation_freq_hz /
@@ -143,18 +152,30 @@ def resample(orig_path, max_distance = 0.2):
         return resampled_path
 
 
-def time_parametrize(path, velocity = 0.1):
+def time_parametrize_const_velocity(path, velocity = 0.1):
     t = np.zeros(path.shape[0])
     for i in range(1, path.shape[0]):
         t[i] = t[i-1] + np.linalg.norm(path[i,:] - path[i-1,:]) / velocity
     return path, t
 
+def trajectory_from_path(target_path, max_velocity, controller_time_step):
+    positions = resample(target_path, max_distance=max_velocity*controller_time_step).transpose()
+    number_of_points = positions.shape[1]
+
+    time_points = np.arange(number_of_points) * controller_time_step + 1
+    # target_path, target_time = time_parametrize_const_velocity(target_path, velocity=max_velocity)
+
+    velocities = np.zeros_like(positions)
+    orientation_rpy = np.zeros_like(positions)
+    orientation_rpy_rates = np.zeros_like(positions)
+
+    return Trajectory(number_of_points, time_points, positions, velocities, orientation_rpy, orientation_rpy_rates)
 
 def run(settings: SimulationSettings):
     # spherical obstacles (x,y,z,radius)
     sphereObstacles = [(1., 1., 1., .5), (3., 4., 5., 1.),
                        (4, 2, 3, 1), (6, 3, 1, 2), (6, 1, 1, 2), (8, 1, 4, 1)]
-    
+
 
     target_path = np.array([(0.0, 0.0, 0.0),
                            (-0.2650163269488669,
@@ -163,17 +184,13 @@ def run(settings: SimulationSettings):
                             0.8806578958716949, 0.9170031402950918),
                            (4.797320063086116, 3.7664814014520025, 4.9663196295733085),
                            (10.0, 5.0, 5.0)])
+    # target_path = np.flip(target_path, 0)
 
-    target_path = resample(target_path)
-    target_path, target_time = time_parametrize(target_path)
-    target_vel = np.zeros((3,30))
-    target_rpy = np.zeros((3,30))
-    target_rpy_rates = np.zeros((3,30))
-    number_wp = target_path.shape[0]
-    target_time = np.arange(0, number_wp, 1)
+    max_velocity = 1 # meters
+    controller_time_step = 0.5 # seconds
+    trajectory = trajectory_from_path(target_path, max_velocity=max_velocity, controller_time_step=controller_time_step)
 
-    # Inital Positions
-    init_xyzs = np.array([target_path[0, :]
+    init_xyzs = np.array([trajectory.positions[:, 0]
                          for i in range(settings.num_drones)])
     init_rpys = np.array([[0, 0,  i * (np.pi/2)/settings.num_drones]
                          for i in range(settings.num_drones)])
@@ -188,59 +205,39 @@ def run(settings: SimulationSettings):
 
     # Plot waypoints (only for debugging)
     tmp = p.createVisualShape(p.GEOM_SPHERE, radius=0.025)
-    for wp in target_path:
-        p.createMultiBody(0, -1, tmp, wp[0:3])
+    for i in range(0, trajectory.number_of_points, math.ceil(trajectory.number_of_points/50)):
+        p.createMultiBody(0, -1, tmp, trajectory.positions[:,i])
 
-    wp_counters = np.array([int((i*number_wp/6) % number_wp)
-                           for i in range(settings.num_drones)])
-
-    # Initialize the controllers
-    ERROR_THRESHOLD = 0.05
-    if settings.drone in [DroneModel.CF2X, DroneModel.CF2P]:
-        ctrl = [DSLPIDControl(drone_model=settings.drone)
-                for i in range(settings.num_drones)]
-    elif settings.drone in [DroneModel.HB]:
-        ctrl = [SimplePIDControl(drone_model=settings.drone)
-                for i in range(settings.num_drones)]
-    ctrl = [MPCControl(drone_model=settings.drone, timestep_reference=1)
+    ctrl = [MPCControl(drone_model=settings.drone, timestep_reference=controller_time_step, timestep_mpc_stages=controller_time_step)
                 for i in range(settings.num_drones)]
 
 
     # Run the simulation
-    CTRL_EVERY_N_STEPS = int(np.floor(env.SIM_FREQ/settings.control_freq_hz))
     action = {str(i): np.array([0, 0, 0, 0])
               for i in range(settings.num_drones)}
+    CTRL_EVERY_N_STEPS = int(np.floor(env.SIM_FREQ/settings.control_freq_hz))
     START = time.time()
     TIMESTEP = 1 / env.SIM_FREQ * aggr_phy_steps
     for i in range(0, int(settings.duration_sec*env.SIM_FREQ), aggr_phy_steps):
 
         # Step the simulation
-        obs, reward, done, info = env.step(action)
-        
+        obs, _, _, _ = env.step(action)
+
         # Compute control at the desired frequency
         if i % CTRL_EVERY_N_STEPS == 0:
             # Compute control for the current way point
             for j in range(settings.num_drones):
-
-                # Advance waypoint if error is small enough
-                current_state = obs[str(j)]["state"]
-                error = np.linalg.norm(
-                    current_state[0:3] - target_path[wp_counters[j], :])
-                if error < ERROR_THRESHOLD:
-                    wp_counters[j] = wp_counters[j] + \
-                        1 if wp_counters[j] < (number_wp-1) else number_wp-1
 
                 # compute control action
                 action[str(j)], next_pos, _ = ctrl[j].computeControlFromState(control_timestep=CTRL_EVERY_N_STEPS*env.TIMESTEP,
                                                                        state=obs[str(
                                                                            j)]["state"],
                                                                        current_time = i * TIMESTEP,
-                                                                       target_time = target_time,
-                                                                       target_pos = target_path.transpose(),
-                                                                       target_rpy = None,
-                                                                       target_vel = None,
-                                                                       target_rpy_rates = None)
-                # p.createMultiBody(0, 100, tmp, next_pos)
+                                                                       target_time = trajectory.time_points,
+                                                                       target_pos = trajectory.positions,
+                                                                       target_rpy = trajectory.orientation_rpy,
+                                                                       target_vel = trajectory.velocities,
+                                                                       target_rpy_rates = trajectory.orientation_rpy_rates)
 
         # Log the simulation
         if settings.log:
@@ -248,8 +245,8 @@ def run(settings: SimulationSettings):
                 logger.log(drone=j,
                         timestamp=i/env.SIM_FREQ,
                         state=obs[str(j)]["state"],
-                        control=np.hstack(
-                            [target_path[wp_counters[j], 0:2], init_xyzs[j, 2], init_rpys[j, :], np.zeros(6)])
+                        # control=np.hstack(
+                            # [target_path[wp_counters[j], 0:2], init_xyzs[j, 2], init_rpys[j, :], np.zeros(6)])
                         # control=np.hstack([INIT_XYZS[j, :]+TARGET_POS[wp_counters[j], :], INIT_RPYS[j, :], np.zeros(6)])
                         )
 
