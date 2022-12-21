@@ -13,7 +13,8 @@ class MPCControl(BaseControl):
     def __init__(self,
                  drone_model: DroneModel,
                  g: float = 9.81,
-                 N=30
+                 N=30,
+                 timestep_reference=None
                  ):
         """Common control classes __init__ method.
 
@@ -29,7 +30,7 @@ class MPCControl(BaseControl):
         super().__init__(drone_model=drone_model, g=g)
         self.N = N
         self._buildModelMatrices()
-        self._buildMPCProblem()
+        self._buildMPCProblem(timestep_reference)
         self.reset()
 
     ################################################################################
@@ -45,142 +46,214 @@ class MPCControl(BaseControl):
     ################################################################################
 
     def _buildModelMatrices(self):
-        # I_x = 0.0075
-        # I_y = 0.0075
-        # I_z = 0.0075
-        I_x = self._getURDFParameter('ixx')
-        I_y = self._getURDFParameter('iyy')
-        I_z = self._getURDFParameter('izz')
-        # l = 0.23
-        l = self._getURDFParameter('arm')
+        I_x = self._getURDFParameter('ixx')  # I_x = 0.0075
+        I_y = self._getURDFParameter('iyy')  # I_y = 0.0075
+        I_z = self._getURDFParameter('izz')  # I_z = 0.0075
+        l = self._getURDFParameter('arm')  # l = 0.23
         I_r = 6e-05
-        # k_f = 3.13e-05
-        # k_m = 7.5e-07
-        # m = 0.65
-        k_f = self._getURDFParameter('kf')
-        k_m = self._getURDFParameter('km')
-        m = self._getURDFParameter('m')
+        k_f = self._getURDFParameter('kf')  # k_f = 3.13e-05
+        k_m = self._getURDFParameter('km')  # k_m = 7.5e-07
+        m = self._getURDFParameter('m')  # m = 0.65
         g = 9.81
-        # k_tx = 0.1
-        # k_ty = 0.1
-        # k_tz = 0.1
-        # k_rx = 0.1
-        # k_ry = 0.1
-        # k_rz = 0.1
-        k_tx = 0
-        k_ty = 0
-        k_tz = 0
-        k_rx = 0
-        k_ry = 0
-        k_rz = 0
+        k_tx = 0  # k_tx = 0.1
+        k_ty = 0  # k_ty = 0.1
+        k_tz = 0  # k_tz = 0.1
+        k_rx = 0  # k_rx = 0.1
+        k_ry = 0  # k_ry = 0.1
+        k_rz = 0  # k_rz = 0.1
         w_r = 0
 
+        # matrix to convert inputs (=forces) to rpm^2
+        # rpm^2 = K * u
         self.K = np.array([[1/(4*k_f), 0, 1/(2*k_f), 1/(4*k_m)],
                            [1/(4*k_f), -1/(2*k_f), 0, -1/(4*k_m)],
                            [1/(4*k_f), 0, -1/(2*k_f), 1/(4*k_m)],
                            [1/(4*k_f), 1/(2*k_f), 0, -1/(4*k_m)]])
 
-        self.hover_rpm = np.full(4, math.sqrt(m*g / (4*k_f)))
 
         # operating point for linearization
-        self.x_op = np.array([0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0])
+        self.x_op = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0])
+        self.hover_rpm = np.full(4, math.sqrt(m*g / (4*k_f)))
         self.u_op = np.matmul(np.linalg.inv(self.K), np.square(
-            self.hover_rpm))  * 0.8# np.array([m*g, 0, 0, 0])
+            self.hover_rpm))
+
         x = self.x_op
         u = self.u_op
-        # u = np.zeros(4)
 
-        t_s = 0.1 # time step per stage
+        self.A = np.array([[0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                           [0, 0, 0, -k_tx/m, 0, 0, (u[0]*(math.cos(x[6])*math.sin(x[8]) - math.cos(x[8])*math.sin(x[6])*math.sin(x[7])))/m, (u[0]*math.cos(
+                               x[6])*math.cos(x[7])*math.cos(x[8]))/m, (u[0]*(math.cos(x[8])*math.sin(x[6]) - math.cos(x[6])*math.sin(x[7])*math.sin(x[8])))/m, 0, 0, 0],
+                           [0, 0, 0, 0, -k_ty/m, 0, -(u[0]*(math.cos(x[6])*math.cos(x[8]) + math.sin(x[6])*math.sin(x[7])*math.sin(x[8])))/m, (u[0]*math.cos(
+                               x[6])*math.cos(x[7])*math.sin(x[8]))/m, (u[0]*(math.sin(x[6])*math.sin(x[8]) + math.cos(x[6])*math.cos(x[8])*math.sin(x[7])))/m, 0, 0, 0],
+                           [0, 0, 0, 0, 0, -k_tz/m, -(u[0]*math.cos(x[7])*math.sin(x[6]))/m, -(
+                               u[0]*math.cos(x[6])*math.sin(x[7]))/m, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0, 0, x[10]*math.cos(x[6])*math.tan(x[7]) - x[11]*math.sin(x[6])*math.tan(x[7]), x[11]*math.cos(x[6])*(math.tan(
+                               x[7])**2 + 1) + x[10]*math.sin(x[6])*(math.tan(x[7])**2 + 1), 0, 1, math.sin(x[6])*math.tan(x[7]), math.cos(x[6])*math.tan(x[7])],
+                           [0, 0, 0, 0, 0, 0, - x[11]*math.cos(x[6]) - x[10]*math.sin(
+                               x[6]), 0, 0, 0, math.cos(x[6]), -math.sin(x[6])],
+                           [0, 0, 0, 0, 0, 0, (x[10]*math.cos(x[6]))/math.cos(x[7]) - (x[11]*math.sin(x[6]))/math.cos(x[7]), (x[11]*math.cos(x[6])*math.sin(x[7]))/math.cos(
+                               x[7])**2 + (x[10]*math.sin(x[6])*math.sin(x[7]))/math.cos(x[7])**2, 0, 0, math.sin(x[6])/math.cos(x[7]), math.cos(x[6])/math.cos(x[7])],
+                           [0, 0, 0, 0, 0, 0, 0, 0, 0, -k_rx/I_x, -
+                            (I_r*w_r - I_y*x[11] + I_z*x[11])/I_x, (I_y*x[10] - I_z*x[10])/I_x],
+                           [0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            (I_r*w_r - I_x*x[11] + I_z*x[11])/I_y, -k_ry/I_y, -(I_x*x[9] - I_z*x[9])/I_y],
+                           [0, 0, 0, 0, 0, 0, 0, 0, 0, (I_x*x[10] - I_y*x[10])/I_z, (I_x*x[9] - I_y*x[9])/I_z, -k_rz/I_z]])
 
-        # k_ry k_rz drag made negative
-        self.A = np.array([[0,0,0,1,0,0,0,0,0,0,0,0],
-        [0,0,0,0,1,0,0,0,0,0,0,0],
-        [0,0,0,0,0,1,0,0,0,0,0,0],
-        [0,0,0,-k_tx/m,0,0,(u[0]*(math.cos(x[6])*math.sin(x[8]) - math.cos(x[8])*math.sin(x[6])*math.sin(x[7])))/m,(u[0]*math.cos(x[6])*math.cos(x[7])*math.cos(x[8]))/m,(u[0]*(math.cos(x[8])*math.sin(x[6]) - math.cos(x[6])*math.sin(x[7])*math.sin(x[8])))/m,0,0,0],
-        [0,0,0,0,-k_ty/m,0,-(u[0]*(math.cos(x[6])*math.cos(x[8]) + math.sin(x[6])*math.sin(x[7])*math.sin(x[8])))/m,(u[0]*math.cos(x[6])*math.cos(x[7])*math.sin(x[8]))/m,(u[0]*(math.sin(x[6])*math.sin(x[8]) + math.cos(x[6])*math.cos(x[8])*math.sin(x[7])))/m,0,0,0],
-        [0,0,0,0,0,-k_tz/m,-(u[0]*math.cos(x[7])*math.sin(x[6]))/m,-(u[0]*math.cos(x[6])*math.sin(x[7]))/m,0,0,0,0],
-        [0,0,0,0,0,0,x[10]*math.cos(x[6])*math.tan(x[7]) - x[11]*math.sin(x[6])*math.tan(x[7]),x[11]*math.cos(x[6])*(math.tan(x[7])**2 + 1) + x[10]*math.sin(x[6])*(math.tan(x[7])**2 + 1),0,1,math.sin(x[6])*math.tan(x[7]),math.cos(x[6])*math.tan(x[7])],
-        [0,0,0,0,0,0,- x[11]*math.cos(x[6]) - x[10]*math.sin(x[6]),0,0,0,math.cos(x[6]),-math.sin(x[6])],
-        [0,0,0,0,0,0,(x[10]*math.cos(x[6]))/math.cos(x[7]) - (x[11]*math.sin(x[6]))/math.cos(x[7]),(x[11]*math.cos(x[6])*math.sin(x[7]))/math.cos(x[7])**2 + (x[10]*math.sin(x[6])*math.sin(x[7]))/math.cos(x[7])**2,0,0,math.sin(x[6])/math.cos(x[7]),math.cos(x[6])/math.cos(x[7])],
-        [0,0,0,0,0,0,0,0,0,-k_rx/I_x,-(I_r*w_r - I_y*x[11] + I_z*x[11])/I_x,(I_y*x[10] - I_z*x[10])/I_x],
-        [0,0,0,0,0,0,0,0,0,(I_r*w_r - I_x*x[11] + I_z*x[11])/I_y,-k_ry/I_y,-(I_x*x[9] - I_z*x[9])/I_y],
-        [0,0,0,0,0,0,0,0,0,(I_x*x[10] - I_y*x[10])/I_z,(I_x*x[9] - I_y*x[9])/I_z,-k_rz/I_z]])
+        self.B = np.array([[0, 0, 0, 0],
+                           [0, 0, 0, 0],
+                           [0, 0, 0, 0],
+                           [(math.sin(x[6])*math.sin(x[8]) + math.cos(x[6])
+                             * math.cos(x[8])*math.sin(x[7]))/m, 0, 0, 0],
+                           [-(math.cos(x[8])*math.sin(x[6]) - math.cos(x[6])
+                              * math.sin(x[7])*math.sin(x[8]))/m, 0, 0, 0],
+                           [(math.cos(x[6])*math.cos(x[7]))/m, 0, 0, 0],
+                           [0, 0, 0, 0],
+                           [0, 0, 0, 0],
+                           [0, 0, 0, 0],
+                           [0, -l/I_x, 0, 0],
+                           [0, 0, -l/I_y, 0],
+                           [0, 0, 0, -l/I_z]])
 
-        self.B = np.array([[0,0,0,0],
-        [0,0,0,0],
-        [0,0,0,0],
-        [(math.sin(x[6])*math.sin(x[8]) + math.cos(x[6])*math.cos(x[8])*math.sin(x[7]))/m,0,0,0],
-        [-(math.cos(x[8])*math.sin(x[6]) - math.cos(x[6])*math.sin(x[7])*math.sin(x[8]))/m,0,0,0],
-        [(math.cos(x[6])*math.cos(x[7]))/m,0,0,0],
-        [0,0,0,0],
-        [0,0,0,0],
-        [0,0,0,0],
-        [0,-l/I_x,0,0],
-        [0,0,-l/I_y,0],
-        [0,0,0,-l/I_z]])
+        # time discretize system
+        self.t_s = 0.5  # time step per stage
+        self.A = self.t_s * self.A + np.identity(12)
+        self.B = self.t_s * self.B
 
-        self.A = np.matmul(np.diag([t_s, t_s, t_s, t_s, t_s, t_s, t_s, t_s, t_s, t_s, t_s, t_s]), self.A)
-        self.B = np.matmul(np.diag([t_s, t_s, t_s, t_s, t_s, t_s, t_s, t_s, t_s, t_s, t_s, t_s]), self.B)
-        self.A += np.identity(12)
+        # weight cost matrices
+        self.W_output = np.diag(
+            [5, 5, 5, 0.25, 0.25, 0.25, 1, 1, 1, 0.1, 0.1, 0.1])
+        self.W_input = np.identity(4)*0.1
 
-        print(self.A)
-        print(self.B)
+    ################################################################################
 
-        self.W_output = np.diag([1, 1, 10, 1, 1, 1, 1, 1, 1, 0.1, 0.1, 0.1])
-        self.W_input = np.identity(4)*0.5
-    def _buildMPCProblem(self):
+    def _buildMPCProblem(self, timestep_reference=None):
+        if timestep_reference == None:
+            timestep_reference = self.t_s
+        elif timestep_reference % self.t_s != 0:
+            raise Exception(
+                "MPC Controller: timestep_reference must be whole-number multiple of the optimization time step")
+
         cost = 0.
         constraints = []
 
         # Parameters
-        x_ref = cp.Parameter((12, self.N), name="x_ref")
+        opt_vars_per_ref = int(timestep_reference / self.t_s)
+        self.N_ref = math.ceil(self.N / opt_vars_per_ref)
+        x_ref = cp.Parameter((12, self.N_ref), name="x_ref")
         x_init = cp.Parameter((12), name="x_init")
 
         # Create the optimization variables
         x = cp.Variable((12, self.N + 1), name="x")
         u = cp.Variable((4, self.N), name="u")
 
+        W_output2 = np.diag([0, 0, 0, 0.0001, 0.0001, 0.0001, 0.1, 0.1, 0.1, 0.01, 0.01, 0.01])
+
         # For each stage in k = 0, ..., N-1
         for k in range(self.N):
+            # Only add translational tracking cost for some stages. Others are only penalized for velocity and rotation.
+            if (k+1) % opt_vars_per_ref == 0:
+                cost += cp.quad_form(x[:, k+1] - x_ref[:, int((k+1) / opt_vars_per_ref - 1)], self.W_output)
+            elif k+1 == self.N:
+                cost += cp.quad_form(x[:, k+1] -
+                                     x_ref[:, self.N_ref-1], self.W_output)
+            else:
+                cost += cp.quad_form(x[:, k+1], W_output2)
+
             # Cost
-            cost += cp.quad_form(x[:, k+1] - x_ref[:, 0], self.W_output)
             cost += cp.quad_form(u[:, k], self.W_input)
 
             # System dynamics
             constraints += [x[:, k+1] == self.A@x[:, k] + self.B@u[:, k]]
 
             # Constraints
-            # constraints += [x[3:6, k] <=
-            #                 np.array([0.1, 0.1, 0.1])]
             constraints += [x[6:9, k] >=
                             np.array([-math.pi, -math.pi/2, -math.pi])]
             constraints += [x[6:9, k] <=
                             np.array([math.pi, math.pi/2, math.pi])]
+            # constraints += [x[3:6, k] <=
+            #                 np.array([0.1, 0.1, 0.1])]
+
+            constraints += [self.K @ u[:, k] >= -np.matmul(self.K, self.u_op)]
             # constraints += [u[:, k] >= np.array([-0.1, -0.1, -0.1, -0.1])]
-            constraints += [u[:, k] <= np.array([0.1, 0.1, 0.1, 0.1])]
-            constraints += [self.K @ u[:, k]  >= -np.matmul(self.K, self.u_op)]
-            # constraints += [u[:, k] >= np.array([-5, -5, -5, -5]) 
+            # constraints += [u[:, k] <= np.array([0.1, 0.1, 0.1, 0.1])]
+            # constraints += [u[:, k] >= np.array([-5, -5, -5, -5])
 
         # Inital condition
-        # cost += cp.quad_form(x[:, 1] - x_ref[:, 0], self.W_output)
         constraints += [x[:, 0] == x_init]
 
-        # print("Constraint u")
-        # print(-np.matmul(self.K, self.u_op))
-        # print(self.K)
         self.problem = cp.Problem(cp.Minimize(cost), constraints)
 
- ################################################################################
+    ################################################################################
 
     def _computeRPMfromInputs(self, u_delta):
-        # tmp = np.matmul(self.K, u)
-        # m = tmp < 0
-        # # tmp[m] = -tmp[m]
-        # rpm = np.sqrt(tmp)
-        # rpm[m] = 0
+        """
+        Computes the rpm given the small-signal u_delta around the operating point.
+        """
         return np.sqrt(np.matmul(self.K, self.u_op + u_delta))
 
- ################################################################################
+    ################################################################################
+
+    def _getNextGoalIndices(self, current_time, target_times):
+        """
+        Computes the upcoming next self.N_ref waypoints to target and returns their indices.
+        current_time:
+            float with current time
+        target_times:
+            (n)-shaped float array with desired arrival times of waypoints
+        """
+        next_goal_indices = np.zeros(self.N_ref, dtype=int)
+
+        delta_times = target_times - current_time
+        if (delta_times <= 0).all():
+            upcoming_goal_index = target_times.shape[0]-1
+        else:
+            upcoming_goal_index = np.where(
+                delta_times > 0, delta_times, np.inf).argmin()
+
+        remaining_goals_count = target_times.shape[0] - upcoming_goal_index
+
+        if remaining_goals_count >= self.N_ref:
+            next_goal_indices = np.arange(
+                upcoming_goal_index, upcoming_goal_index + self.N_ref, dtype=int)
+        else:
+            next_goal_indices[0:remaining_goals_count] = np.arange(
+                upcoming_goal_index, target_times.shape[0], dtype=int)
+            next_goal_indices[remaining_goals_count:] = int(target_times.shape[0]-1)
+
+        return next_goal_indices
+
+    ################################################################################
+
+    def computeControlFromState(self,
+                                control_timestep,
+                                state,
+                                target_pos,
+                                current_time,
+                                target_time,
+                                target_rpy=np.zeros(3),
+                                target_vel=np.zeros(3),
+                                target_rpy_rates=np.zeros(3)
+                                ):
+        """
+        target_time : ndarray
+            (1,n)-shaped array of floats containing the desired arrival times of the given waypoints.
+        """
+        return self.computeControl(control_timestep,
+                                   state[0:3],
+                                   state[3:7],
+                                   state[10:13],
+                                   state[13:16],
+                                   current_time,
+                                   target_time,
+                                   target_pos=target_pos,
+                                   target_rpy=target_rpy,
+                                   target_vel=target_vel,
+                                   target_rpy_rates=target_rpy_rates
+                                   )
+
+    ################################################################################
 
     def computeControl(self,
                        control_timestep,
@@ -188,6 +261,8 @@ class MPCControl(BaseControl):
                        cur_quat,
                        cur_vel,
                        cur_ang_vel,
+                       current_time,
+                       target_time,
                        target_pos,
                        target_rpy=[None],
                        target_vel=None,
@@ -207,59 +282,59 @@ class MPCControl(BaseControl):
             (3,1)-shaped array of floats containing the current velocity.
         cur_ang_vel : ndarray
             (3,1)-shaped array of floats containing the current angular velocity.
+        current_time:
+            float with current time
+        target_times:
+            (n)-shaped float array with desired arrival times of waypoints
         target_pos : ndarray
-            (3,1)-shaped array of floats containing the desired position.
+            (3,n)-shaped array of floats containing the desired position.
         target_rpy : ndarray, optional
-            (3,1)-shaped array of floats containing the desired orientation as roll, pitch, yaw.
+            (3,n)-shaped array of floats containing the desired orientation as roll, pitch, yaw.
         target_vel : ndarray, optional
-            (3,1)-shaped array of floats containing the desired velocity.
+            (3,n)-shaped array of floats containing the desired velocity.
         target_rpy_rates : ndarray, optional
-            (3,1)-shaped array of floats containing the desired roll, pitch, and yaw rates.
+            (3,n)-shaped array of floats containing the desired roll, pitch, and yaw rates.
 
         Returns
         -------
         ndarray
             (4,1)-shaped array of integers containing the RPMs to apply to each of the 4 motors.
         ndarray
-            (3,1)-shaped array of floats containing the current XYZ position error.
+            (3,1)-shaped array of floats containing the next predicted state
         float
-            The current yaw error.
+            Nothing
 
         """
-        target_pos = np.zeros((3, self.N))
-        target_pos[0, :] = 0.5
-        target_pos[1, :] = 1
-        target_pos[2, :] = 2
-        # if target_vel is None:
-        target_vel = np.zeros((3, self.N))
-        # if target_rpy is None:
-        target_rpy = np.zeros((3, self.N))
-        # if target_rpy_rates is None:
-        target_rpy_rates = np.zeros((3, self.N))
+        # Check inputs
+        if target_pos.shape[0] != 3:
+            print("\n[ERROR] MPCController reference has incorrect dimension")
+        if target_vel is None:
+            target_vel = np.zeros_like(target_pos)
+        if target_rpy is None:
+            target_rpy = np.zeros_like(target_pos)
+        if target_rpy_rates is None:
+            target_rpy_rates = np.zeros_like(target_pos)
+        if any(s != target_pos.shape for s in [target_vel.shape, target_rpy.shape, target_rpy_rates.shape]):
+            print("\n[ERROR] MPCController reference has incorrect dimension")
 
+        # Extract next self.N_ref goals from target path
+        next_goal_indices = self._getNextGoalIndices(current_time, target_time)
+
+        # Current state
         cur_state = np.zeros(12,)
         cur_state[0:3] = cur_pos
         cur_state[3:6] = cur_vel
         cur_state[6:9] = p.getEulerFromQuaternion(cur_quat)
         cur_state[9:12] = cur_ang_vel
 
-        if any(s != (3, self.N) for s in [target_pos.shape, target_vel.shape, target_rpy.shape, target_rpy_rates.shape]):
-            print("\n[ERROR] MPCController reference has incorrect dimension")
-
+        # Solve MPC
         self.problem.param_dict["x_ref"].value = np.vstack(
-            [target_pos, target_vel, target_rpy, target_rpy_rates])
+            [target_pos, target_vel, target_rpy, target_rpy_rates])[:, next_goal_indices]
         self.problem.param_dict["x_init"].value = cur_state
         self.problem.solve(solver=cp.ECOS)
-        print(self.problem.status)
-        print(self.problem.value)
 
+        # Convert small-signal u into large-signal rpm
         rpm = self._computeRPMfromInputs(
             self.problem.var_dict["u"].value[:, 0])
-        print("u ")
-        print(self.problem.var_dict["u"].value[:, 0])
-        print(rpm)
-        print(target_pos[:, 0])
-        print(cur_pos)
 
-        # rpm[:] += 14500
-        return rpm, self.problem.var_dict["x"].value[0:3, 1] + cur_state[0:3], 0
+        return rpm, self.problem.var_dict["x"].value[0:3, 1], 0

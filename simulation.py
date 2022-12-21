@@ -48,7 +48,7 @@ DEFAULT_USER_DEBUG_GUI = False
 DEFAULT_AGGREGATE = True
 DEFAULT_OBSTACLES = False
 DEFAULT_SIMULATION_FREQ_HZ = 240
-DEFAULT_CONTROL_FREQ_HZ = 60
+DEFAULT_CONTROL_FREQ_HZ = 45
 DEFAULT_DURATION_SEC = 60
 DEFAULT_OUTPUT_FOLDER = 'results'
 DEFAULT_COLAB = False
@@ -170,11 +170,11 @@ def run(settings: SimulationSettings):
     target_rpy = np.zeros((3,30))
     target_rpy_rates = np.zeros((3,30))
     number_wp = target_path.shape[0]
+    target_time = np.arange(0, number_wp, 1)
 
     # Inital Positions
     init_xyzs = np.array([target_path[0, :]
                          for i in range(settings.num_drones)])
-    init_xyzs[0,:] = [0, 0, 1]
     init_rpys = np.array([[0, 0,  i * (np.pi/2)/settings.num_drones]
                          for i in range(settings.num_drones)])
 
@@ -188,9 +188,8 @@ def run(settings: SimulationSettings):
 
     # Plot waypoints (only for debugging)
     tmp = p.createVisualShape(p.GEOM_SPHERE, radius=0.025)
-    # for wp in target_path:
-    #     p.createMultiBody(0, -1, tmp, wp[0:3])
-    p.createMultiBody(0, -1, tmp, np.array([0.5, 1, 2]))
+    for wp in target_path:
+        p.createMultiBody(0, -1, tmp, wp[0:3])
 
     wp_counters = np.array([int((i*number_wp/6) % number_wp)
                            for i in range(settings.num_drones)])
@@ -203,7 +202,7 @@ def run(settings: SimulationSettings):
     elif settings.drone in [DroneModel.HB]:
         ctrl = [SimplePIDControl(drone_model=settings.drone)
                 for i in range(settings.num_drones)]
-    ctrl = [MPCControl(drone_model=settings.drone, )
+    ctrl = [MPCControl(drone_model=settings.drone, timestep_reference=1)
                 for i in range(settings.num_drones)]
 
 
@@ -212,11 +211,12 @@ def run(settings: SimulationSettings):
     action = {str(i): np.array([0, 0, 0, 0])
               for i in range(settings.num_drones)}
     START = time.time()
+    TIMESTEP = 1 / env.SIM_FREQ * aggr_phy_steps
     for i in range(0, int(settings.duration_sec*env.SIM_FREQ), aggr_phy_steps):
 
         # Step the simulation
         obs, reward, done, info = env.step(action)
-
+        
         # Compute control at the desired frequency
         if i % CTRL_EVERY_N_STEPS == 0:
             # Compute control for the current way point
@@ -234,11 +234,13 @@ def run(settings: SimulationSettings):
                 action[str(j)], next_pos, _ = ctrl[j].computeControlFromState(control_timestep=CTRL_EVERY_N_STEPS*env.TIMESTEP,
                                                                        state=obs[str(
                                                                            j)]["state"],
-                                                                       target_pos = target_path[20:50,:].transpose(),
-                                                                       target_rpy = target_rpy,
-                                                                       target_vel = target_vel,
-                                                                       target_rpy_rates = target_rpy_rates)
-                p.createMultiBody(0, 100, tmp, next_pos)
+                                                                       current_time = i * TIMESTEP,
+                                                                       target_time = target_time,
+                                                                       target_pos = target_path.transpose(),
+                                                                       target_rpy = None,
+                                                                       target_vel = None,
+                                                                       target_rpy_rates = None)
+                # p.createMultiBody(0, 100, tmp, next_pos)
 
         # Log the simulation
         if settings.log:
