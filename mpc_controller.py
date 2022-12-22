@@ -48,21 +48,21 @@ class MPCControl(BaseControl):
     ################################################################################
 
     def _buildModelMatrices(self):
-        I_x = self._getURDFParameter('ixx')  # I_x = 0.0075
-        I_y = self._getURDFParameter('iyy')  # I_y = 0.0075
-        I_z = self._getURDFParameter('izz')  # I_z = 0.0075
-        l = self._getURDFParameter('arm')  # l = 0.23
+        I_x = self._getURDFParameter('ixx')
+        I_y = self._getURDFParameter('iyy')
+        I_z = self._getURDFParameter('izz')
+        l = self._getURDFParameter('arm')
         I_r = 6e-05
-        k_f = self._getURDFParameter('kf')  # k_f = 3.13e-05
-        k_m = self._getURDFParameter('km')  # k_m = 7.5e-07
-        m = self._getURDFParameter('m')  # m = 0.65
+        k_f = self._getURDFParameter('kf')
+        k_m = self._getURDFParameter('km')
+        m = self._getURDFParameter('m')
         g = 9.81
-        k_tx = 0  # k_tx = 0.1
-        k_ty = 0  # k_ty = 0.1
-        k_tz = 0  # k_tz = 0.1
-        k_rx = 0  # k_rx = 0.1
-        k_ry = 0  # k_ry = 0.1
-        k_rz = 0  # k_rz = 0.1
+        k_tx = 0
+        k_ty = 0
+        k_tz = 0
+        k_rx = 0
+        k_ry = 0
+        k_rz = 0
         w_r = 0
 
         # matrix to convert inputs (=forces) to rpm^2
@@ -140,8 +140,6 @@ class MPCControl(BaseControl):
         constraints = []
 
         # Parameters
-        # opt_vars_per_ref = int(timestep_reference / self.t_s)
-        # self.N_ref = math.ceil(self.N / opt_vars_per_ref)
         x_ref = cp.Parameter((12, self.N), name="x_ref")
         x_init = cp.Parameter((12), name="x_init")
 
@@ -149,19 +147,8 @@ class MPCControl(BaseControl):
         x = cp.Variable((12, self.N + 1), name="x")
         u = cp.Variable((4, self.N), name="u")
 
-        # W_output2 = np.diag([0, 0, 0, 0.0001, 0.0001, 0.0001, 0.1, 0.1, 0.1, 0.01, 0.01, 0.01])
-
         # For each stage in k = 0, ..., N-1
         for k in range(self.N):
-            # Only add translational tracking cost for some stages. Others are only penalized for velocity and rotation.
-            # if (k+1) % opt_vars_per_ref == 0:
-            #     cost += cp.quad_form(x[:, k+1] - x_ref[:, int((k+1) / opt_vars_per_ref - 1)], self.W_output)
-            # elif k+1 == self.N:
-            #     cost += cp.quad_form(x[:, k+1] -
-            #                          x_ref[:, self.N_ref-1], self.W_output)
-            # else:
-            #     cost += cp.quad_form(x[:, k+1], W_output2)
-
             cost += cp.quad_form(x[:, k+1] - x_ref[:, k], self.W_output)
 
             # Cost

@@ -133,17 +133,20 @@ def run(settings: SimulationSettings):
                            (4.797320063086116, 3.7664814014520025, 4.9663196295733085),
                            (10.0, 5.0, 5.0)])
 
+    # Create time parametrized trajectory from given path
     max_velocity = 0.75 # m/s
     controller_time_step = 0.25
     trajectory_time_step = controller_time_step
     trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.3)
     # trajectory = trajectory_from_path_const_vel(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step)
 
+    # Inital drone position(s)
     init_xyzs = np.array([trajectory.positions[:, 0]
                          for i in range(settings.num_drones)])
     init_rpys = np.array([[0, 0,  i * (np.pi/2)/settings.num_drones]
                          for i in range(settings.num_drones)])
 
+    # Setup simulation
     env, pyb_client, logger, aggr_phy_steps = setup_simulation(
         settings, init_xyzs, init_rpys)
 
@@ -154,10 +157,10 @@ def run(settings: SimulationSettings):
 
     # Plot waypoints (only for debugging)
     tmp = p.createVisualShape(p.GEOM_SPHERE, radius=0.025)
-    for i in range(0, trajectory.number_of_points): #, math.ceil(trajectory.number_of_points/50)):
+    for i in range(0, trajectory.number_of_points):
         p.createMultiBody(0, -1, tmp, trajectory.positions[:,i])
-    # p.createMultiBody(0, -1, tmp, trajectory.positions[:, trajectory.number_of_points-1])
 
+    # Controller(s)
     ctrl = [MPCControl(drone_model=settings.drone, timestep_reference=trajectory_time_step, timestep_mpc_stages=controller_time_step)
                 for i in range(settings.num_drones)]
 
@@ -172,14 +175,13 @@ def run(settings: SimulationSettings):
     target_index = 0
     i = 0
     while target_index != trajectory.number_of_points-1 or trans_error > 0.05:
-    # for i in range(0, int(settings.duration_sec*env.SIM_FREQ), aggr_phy_steps):
 
         # Step the simulation
         obs, _, _, _ = env.step(action)
 
         # Compute control at the desired frequency
         if i % CTRL_EVERY_N_STEPS == 0:
-            # Compute control for the current way point
+            # Compute control for each drone
             for j in range(settings.num_drones):
 
                 # compute control action
