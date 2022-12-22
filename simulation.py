@@ -43,13 +43,13 @@ DEFAULT_PHYSICS = Physics("pyb")
 DEFAULT_VISION = False
 DEFAULT_GUI = True
 DEFAULT_RECORD_VISION = False
-DEFAULT_PLOT = False
+DEFAULT_PLOT = True
 DEFAULT_USER_DEBUG_GUI = False
 DEFAULT_AGGREGATE = True
 DEFAULT_OBSTACLES = False
 DEFAULT_SIMULATION_FREQ_HZ = 240
 DEFAULT_CONTROL_FREQ_HZ = 45
-DEFAULT_DURATION_SEC = 60
+DEFAULT_DURATION_SEC = 8
 DEFAULT_OUTPUT_FOLDER = 'results'
 DEFAULT_COLAB = False
 DEFAULT_LOG = False
@@ -158,14 +158,86 @@ def time_parametrize_const_velocity(path, velocity = 0.1):
         t[i] = t[i-1] + np.linalg.norm(path[i,:] - path[i-1,:]) / velocity
     return path, t
 
-def trajectory_from_path(target_path, max_velocity, controller_time_step):
-    positions = resample(target_path, max_distance=max_velocity*controller_time_step).transpose()
-    number_of_points = positions.shape[1]
-
-    time_points = np.arange(number_of_points) * controller_time_step + 1
-    # target_path, target_time = time_parametrize_const_velocity(target_path, velocity=max_velocity)
+def get_velocties_from_path(positions, time_points):
+    if positions.shape[1] == 1:
+        return np.array([0, 0, 0])
 
     velocities = np.zeros_like(positions)
+    velocities[:,0] = (positions[:,1] - positions[:,0]) / (time_points[1] - time_points[0])
+    for i in range(1, positions.shape[1]-1):
+        pre_vel = (positions[:,i] - positions[:,i-1]) / (time_points[i] - time_points[i-1])
+        post_vel = (positions[:,i+1] - positions[:,i]) / (time_points[i+1] - time_points[i])
+        velocities[:,i] = pre_vel + post_vel / 2
+    velocities[:, positions.shape[1]-1] = np.array([0, 0, 0])
+    return velocities
+
+def bang_bang_velocity_profile(sampling_time, start_point, end_point, start_stop_speed, max_speed, max_acceleration):
+    t_acc = (max_speed - start_stop_speed) / max_acceleration
+    d_acc = 0.5 * max_acceleration * t_acc**2 + start_stop_speed * t_acc
+
+    d = np.linalg.norm(end_point - start_point)
+    d_const_speed = d - 2*d_acc
+
+    # acceleration + decceration phase is longer than total distance
+    if d_const_speed < 0:
+        t_acc = (-start_stop_speed + math.sqrt(start_stop_speed**2 + max_acceleration * d)) / max_acceleration
+        d_acc = d/2 # = t_acc * start_stop_speed + 0.5 * max_acceleration * t_acc**2
+        d_const_speed = 0
+        max_speed = max_acceleration * t_acc + start_stop_speed
+
+    t_const_speed = d_const_speed / max_speed
+    total_time = t_acc * 2 + t_const_speed
+    t = np.hstack([np.arange(0, total_time, sampling_time), math.ceil(total_time / sampling_time) * sampling_time])
+
+    unit_dir = (end_point - start_point) / d
+    point = np.zeros((3, t.size))
+    v = np.zeros((3, t.size))
+    v[:,0] = unit_dir * start_stop_speed
+    point[:,0] = start_point
+    v[:, t.size - 1] = unit_dir * start_stop_speed
+    point[:, t.size-1] = end_point
+
+    for i in range(1, t.size-1):
+        if t[i] < t_acc:
+            v[:,i] = unit_dir * (start_stop_speed + t[i] * max_acceleration)
+            point[:,i] = start_point + unit_dir * (start_stop_speed * t[i] + 0.5 * max_acceleration * t[i]**2)
+        elif t[i] < t_acc + t_const_speed:
+            v[:,i] = unit_dir * (max_speed)
+            point[:,i] = start_point + unit_dir * (d_acc + max_speed * (t[i] - t_acc))
+        else:
+            v[:,i] = unit_dir * (max_speed - (t[i] - t_const_speed - t_acc) * max_acceleration)
+            point[:,i] = start_point + unit_dir * (d_acc + d_const_speed + max_speed * (t[i]- t_acc - t_const_speed) - 0.5 * max_acceleration * (t[i] - t_acc - t_const_speed)**2)
+
+    return t, point, v
+
+def trajectory_from_path_bang_bang(target_path, max_velocity, sampling_time, min_speed = 0):
+    time_points = np.array([0])
+    positions = np.zeros((3,1))
+    velocities = np.zeros((3,1))
+
+    for i in range(target_path.shape[0]-1):
+        t, p, v = bang_bang_velocity_profile(sampling_time, target_path[i], target_path[i+1], min_speed, max_velocity, 2)
+        time_points = np.hstack([time_points[0:-1], time_points[-1] + t])
+        positions = np.hstack([positions[:,0:-1], p])
+        velocities = np.hstack([velocities[:,0:-1], v])
+    velocities[:,-1] = np.array([0, 0, 0])
+
+    number_of_points = time_points.size
+    orientation_rpy = np.zeros_like(positions)
+    orientation_rpy_rates = np.zeros_like(positions)
+
+    return Trajectory(number_of_points, time_points, positions, velocities, orientation_rpy, orientation_rpy_rates)
+
+def trajectory_from_path_const_vel(target_path, max_velocity, sampling_time):
+    positions = resample(target_path, max_distance=max_velocity*sampling_time).transpose()
+    number_of_points = positions.shape[1]
+
+    time_points = np.arange(number_of_points) * sampling_time + 1
+    target_path, target_time = time_parametrize_const_velocity(target_path, velocity=max_velocity)
+
+    velocities = np.zeros_like(positions)
+    velocities = get_velocties_from_path(positions, time_points)
+    number_of_points = time_points.size
     orientation_rpy = np.zeros_like(positions)
     orientation_rpy_rates = np.zeros_like(positions)
 
@@ -184,11 +256,12 @@ def run(settings: SimulationSettings):
                             0.8806578958716949, 0.9170031402950918),
                            (4.797320063086116, 3.7664814014520025, 4.9663196295733085),
                            (10.0, 5.0, 5.0)])
-    # target_path = np.flip(target_path, 0)
 
-    max_velocity = 1 # meters
-    controller_time_step = 0.5 # seconds
-    trajectory = trajectory_from_path(target_path, max_velocity=max_velocity, controller_time_step=controller_time_step)
+    max_velocity = 0.75 # m/s
+    controller_time_step = 0.25
+    trajectory_time_step = controller_time_step
+    trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.3)
+    # trajectory = trajectory_from_path_const_vel(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step)
 
     init_xyzs = np.array([trajectory.positions[:, 0]
                          for i in range(settings.num_drones)])
@@ -205,10 +278,11 @@ def run(settings: SimulationSettings):
 
     # Plot waypoints (only for debugging)
     tmp = p.createVisualShape(p.GEOM_SPHERE, radius=0.025)
-    for i in range(0, trajectory.number_of_points, math.ceil(trajectory.number_of_points/50)):
+    for i in range(0, trajectory.number_of_points): #, math.ceil(trajectory.number_of_points/50)):
         p.createMultiBody(0, -1, tmp, trajectory.positions[:,i])
+    # p.createMultiBody(0, -1, tmp, trajectory.positions[:, trajectory.number_of_points-1])
 
-    ctrl = [MPCControl(drone_model=settings.drone, timestep_reference=controller_time_step, timestep_mpc_stages=controller_time_step)
+    ctrl = [MPCControl(drone_model=settings.drone, timestep_reference=trajectory_time_step, timestep_mpc_stages=controller_time_step)
                 for i in range(settings.num_drones)]
 
 
@@ -218,7 +292,11 @@ def run(settings: SimulationSettings):
     CTRL_EVERY_N_STEPS = int(np.floor(env.SIM_FREQ/settings.control_freq_hz))
     START = time.time()
     TIMESTEP = 1 / env.SIM_FREQ * aggr_phy_steps
-    for i in range(0, int(settings.duration_sec*env.SIM_FREQ), aggr_phy_steps):
+    trans_error = 0
+    target_index = 0
+    i = 0
+    while target_index != trajectory.number_of_points-1 or trans_error > 0.05:
+    # for i in range(0, int(settings.duration_sec*env.SIM_FREQ), aggr_phy_steps):
 
         # Step the simulation
         obs, _, _, _ = env.step(action)
@@ -229,7 +307,8 @@ def run(settings: SimulationSettings):
             for j in range(settings.num_drones):
 
                 # compute control action
-                action[str(j)], next_pos, _ = ctrl[j].computeControlFromState(control_timestep=CTRL_EVERY_N_STEPS*env.TIMESTEP,
+                action[str(j)], trans_error, current_target, target_index = ctrl[j].computeControlFromState(
+                                                                       control_timestep=CTRL_EVERY_N_STEPS*env.TIMESTEP,
                                                                        state=obs[str(
                                                                            j)]["state"],
                                                                        current_time = i * TIMESTEP,
@@ -240,14 +319,12 @@ def run(settings: SimulationSettings):
                                                                        target_rpy_rates = trajectory.orientation_rpy_rates)
 
         # Log the simulation
-        if settings.log:
+        if settings.log or settings.plot:
             for j in range(settings.num_drones):
                 logger.log(drone=j,
                         timestamp=i/env.SIM_FREQ,
                         state=obs[str(j)]["state"],
-                        # control=np.hstack(
-                            # [target_path[wp_counters[j], 0:2], init_xyzs[j, 2], init_rpys[j, :], np.zeros(6)])
-                        # control=np.hstack([INIT_XYZS[j, :]+TARGET_POS[wp_counters[j], :], INIT_RPYS[j, :], np.zeros(6)])
+                        # control= np.hstack([current_target[0:3], current_target[6:9], current_target[3:6], current_target[9:12]])
                         )
 
         # Printout
@@ -266,6 +343,9 @@ def run(settings: SimulationSettings):
         # Sync the simulation
         if settings.gui:
             sync(i, START, env.TIMESTEP)
+
+        # increment
+        i = i + aggr_phy_steps
 
     # Finish simulation and save results
     env.close()

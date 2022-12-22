@@ -13,7 +13,7 @@ class MPCControl(BaseControl):
     def __init__(self,
                  drone_model: DroneModel,
                  g: float = 9.81,
-                 N=20,
+                 N=30,
                  timestep_reference=None,
                  timestep_mpc_stages = 0.25
                  ):
@@ -124,8 +124,8 @@ class MPCControl(BaseControl):
 
         # weight cost matrices
         self.W_output = np.diag(
-            [5, 5, 5, 0.15, 0.15, 0.15, 1, 1, 1, 0.05, 0.05, 0.05])
-        self.W_input = np.identity(4)*0.1
+            [5, 5, 5, 1, 1, 1, 0.001, 0.001, 0.001, 0.05, 0.05, 0.05])
+        self.W_input = np.identity(4)*0.01
 
     ################################################################################
 
@@ -140,30 +140,29 @@ class MPCControl(BaseControl):
         constraints = []
 
         # Parameters
-        opt_vars_per_ref = int(timestep_reference / self.t_s)
-        print(opt_vars_per_ref)
-        self.N_ref = math.ceil(self.N / opt_vars_per_ref)
-        x_ref = cp.Parameter((12, self.N_ref), name="x_ref")
+        # opt_vars_per_ref = int(timestep_reference / self.t_s)
+        # self.N_ref = math.ceil(self.N / opt_vars_per_ref)
+        x_ref = cp.Parameter((12, self.N), name="x_ref")
         x_init = cp.Parameter((12), name="x_init")
 
         # Create the optimization variables
         x = cp.Variable((12, self.N + 1), name="x")
         u = cp.Variable((4, self.N), name="u")
 
-        W_output2 = np.diag([0, 0, 0, 0.0001, 0.0001, 0.0001, 0.1, 0.1, 0.1, 0.01, 0.01, 0.01])
+        # W_output2 = np.diag([0, 0, 0, 0.0001, 0.0001, 0.0001, 0.1, 0.1, 0.1, 0.01, 0.01, 0.01])
 
         # For each stage in k = 0, ..., N-1
         for k in range(self.N):
             # Only add translational tracking cost for some stages. Others are only penalized for velocity and rotation.
-            if (k+1) % opt_vars_per_ref == 0:
-                cost += cp.quad_form(x[:, k+1] - x_ref[:, int((k+1) / opt_vars_per_ref - 1)], self.W_output)
-            elif k+1 == self.N:
-                cost += cp.quad_form(x[:, k+1] -
-                                     x_ref[:, self.N_ref-1], self.W_output)
-            else:
-                cost += cp.quad_form(x[:, k+1], W_output2)
+            # if (k+1) % opt_vars_per_ref == 0:
+            #     cost += cp.quad_form(x[:, k+1] - x_ref[:, int((k+1) / opt_vars_per_ref - 1)], self.W_output)
+            # elif k+1 == self.N:
+            #     cost += cp.quad_form(x[:, k+1] -
+            #                          x_ref[:, self.N_ref-1], self.W_output)
+            # else:
+            #     cost += cp.quad_form(x[:, k+1], W_output2)
 
-            # cost += cp.quad_form(x[:, k+1] - x_ref[:, k], self.W_output)
+            cost += cp.quad_form(x[:, k+1] - x_ref[:, k], self.W_output)
 
             # Cost
             cost += cp.quad_form(u[:, k], self.W_input)
@@ -176,13 +175,7 @@ class MPCControl(BaseControl):
                             np.array([-math.pi, -math.pi/2, -math.pi])]
             constraints += [x[6:9, k] <=
                             np.array([math.pi, math.pi/2, math.pi])]
-            # constraints += [x[3:6, k] <=
-            #                 np.array([0.1, 0.1, 0.1])]
-
             constraints += [self.K @ u[:, k] >= -np.matmul(self.K, self.u_op)]
-            # constraints += [u[:, k] >= np.array([-0.1, -0.1, -0.1, -0.1])]
-            # constraints += [u[:, k] <= np.array([0.1, 0.1, 0.1, 0.1])]
-            # constraints += [u[:, k] >= np.array([-5, -5, -5, -5])
 
         # Inital condition
         constraints += [x[:, 0] == x_init]
@@ -199,28 +192,21 @@ class MPCControl(BaseControl):
 
     ################################################################################
 
-    def _getNextGoalIndices(self, current_time, target_times):
+    def _getNextGoalIndices(self, current_time, target_times, cur_pos, target_pos):
         """
-        Computes the upcoming next self.N_ref waypoints to target and returns their indices.
+        Computes the upcoming next self.N waypoints to target and returns their indices.
         current_time:
             float with current time
         target_times:
             (n)-shaped float array with desired arrival times of waypoints
         """
-        next_goal_indices = np.zeros(self.N_ref, dtype=int)
-
-        delta_times = target_times - current_time
-        if (delta_times <= 0).all():
-            upcoming_goal_index = target_times.shape[0]-1
-        else:
-            upcoming_goal_index = np.where(
-                delta_times > 0, delta_times, np.inf).argmin()
+        next_goal_indices = np.zeros(self.N, dtype=int)
+        upcoming_goal_index = min(np.linalg.norm(target_pos - np.reshape(cur_pos, (3,1)), axis=0).argmin()+1, target_times.shape[0]-1)
 
         remaining_goals_count = target_times.shape[0] - upcoming_goal_index
-
-        if remaining_goals_count >= self.N_ref:
+        if remaining_goals_count >= self.N:
             next_goal_indices = np.arange(
-                upcoming_goal_index, upcoming_goal_index + self.N_ref, dtype=int)
+                upcoming_goal_index, upcoming_goal_index + self.N, dtype=int)
         else:
             next_goal_indices[0:remaining_goals_count] = np.arange(
                 upcoming_goal_index, target_times.shape[0], dtype=int)
@@ -322,7 +308,7 @@ class MPCControl(BaseControl):
             print("\n[ERROR] MPCController reference has incorrect dimension (2)")
 
         # Extract next self.N_ref goals from target path
-        next_goal_indices = self._getNextGoalIndices(current_time, target_time)
+        next_goal_indices = self._getNextGoalIndices(current_time, target_time, cur_pos, target_pos)
 
         # Current state
         cur_state = np.zeros(12,)
@@ -341,4 +327,5 @@ class MPCControl(BaseControl):
         rpm = self._computeRPMfromInputs(
             self.problem.var_dict["u"].value[:, 0])
 
-        return rpm, self.problem.var_dict["x"].value[0:3, 1], 0
+        translation_error = np.linalg.norm(self.problem.var_dict["x"].value[0:3, 0] - self.problem.param_dict["x_ref"].value[0:3, 0])
+        return rpm, translation_error, self.problem.param_dict["x_ref"].value[:, 0], next_goal_indices[0]
