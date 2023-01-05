@@ -51,7 +51,7 @@ def time_parametrize_const_velocity(path, velocity=0.1):
     t = np.zeros(path.shape[0])
     for i in range(1, path.shape[0]):
         t[i] = t[i-1] + np.linalg.norm(path[i, :] - path[i-1, :]) / velocity
-    return path, t
+    return t
 
 ################################################################################
 
@@ -67,15 +67,12 @@ def get_velocties_from_path(positions, time_points):
         return np.array([0, 0, 0])
 
     velocities = np.zeros_like(positions)
-    velocities[:, 0] = (positions[:, 1] - positions[:, 0]) / \
-        (time_points[1] - time_points[0])
+    velocities[:, 0] = (positions[:, 1] - positions[:, 0]) / (time_points[1] - time_points[0])
     for i in range(1, positions.shape[1]-1):
-        pre_vel = (positions[:, i] - positions[:, i-1]) / \
-            (time_points[i] - time_points[i-1])
-        post_vel = (positions[:, i+1] - positions[:, i]) / \
-            (time_points[i+1] - time_points[i])
-        velocities[:, i] = pre_vel + post_vel / 2
-    velocities[:, positions.shape[1]-1] = np.array([0, 0, 0])
+        pre_vel = (positions[:, i] - positions[:, i-1]) / (time_points[i] - time_points[i-1])
+        post_vel = (positions[:, i+1] - positions[:, i]) / (time_points[i+1] - time_points[i])
+        velocities[:, i] = pre_vel # + post_vel) / 2
+    velocities[:, -1] = np.array([0, 0, 0])
     return velocities
 
 ################################################################################
@@ -150,7 +147,7 @@ def bang_bang_velocity_profile(sampling_time, start_point, end_point, start_stop
 
 ################################################################################
 
-def trajectory_from_path_bang_bang(target_path, max_velocity, sampling_time, min_speed=0):
+def trajectory_from_path_bang_bang(target_path, max_velocity, sampling_time, min_speed=0, max_acceleration=1):
     """
     Apply bang_bang_velocity_profile(...) function to each consecutive waypoint-pair to obtain whole trajectory.
     """
@@ -160,7 +157,7 @@ def trajectory_from_path_bang_bang(target_path, max_velocity, sampling_time, min
 
     for i in range(target_path.shape[0]-1):
         t, p, v = bang_bang_velocity_profile(
-            sampling_time, target_path[i], target_path[i+1], min_speed, max_velocity, 2)
+            sampling_time, target_path[i], target_path[i+1], min_speed, max_velocity, max_acceleration)
         time_points = np.hstack([time_points[0:-1], time_points[-1] + t])
         positions = np.hstack([positions[:, 0:-1], p])
         velocities = np.hstack([velocities[:, 0:-1], v])
@@ -183,11 +180,11 @@ def trajectory_from_path_const_vel(target_path, max_velocity, sampling_time):
         target_path, max_distance=max_velocity*sampling_time).transpose()
     number_of_points = positions.shape[1]
 
-    time_points = np.arange(number_of_points) * sampling_time + 1
-    target_path, target_time = time_parametrize_const_velocity(
-        target_path, velocity=max_velocity)
+    # time_points = np.arange(number_of_points) * sampling_time + 1
+    time_points = time_parametrize_const_velocity(
+        positions.transpose(), velocity=max_velocity)
 
-    velocities = np.zeros_like(positions)
+    # velocities = np.zeros_like(positions)
     velocities = get_velocties_from_path(positions, time_points)
     number_of_points = time_points.size
     orientation_rpy = np.zeros_like(positions)
