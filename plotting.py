@@ -1,4 +1,5 @@
 import os
+from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
 from cycler import cycler
@@ -243,7 +244,29 @@ def plot_translation_from_logger(logger, target):
         plt.savefig(os.path.join('results', datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + 'output.png'))
         fig.show()
 
-def plot_3d_from_logger(logger):
+def set_axes_equal(ax: plt.Axes):
+    """Set 3D plot axes to equal scale.
+
+    Make axes of 3D plot have equal scale so that spheres appear as
+    spheres and cubes as cubes.  Required since `ax.axis('equal')`
+    and `ax.set_aspect('equal')` don't work on 3D.
+    """
+    limits = np.array([
+        ax.get_xlim3d(),
+        ax.get_ylim3d(),
+        ax.get_zlim3d(),
+    ])
+    origin = np.mean(limits, axis=1)
+    radius = 0.5 * np.max(np.abs(limits[:, 1] - limits[:, 0]))
+    _set_axes_radius(ax, origin, radius)
+
+def _set_axes_radius(ax, origin, radius):
+    x, y, z = origin
+    ax.set_xlim3d([x - radius, x + radius])
+    ax.set_ylim3d([y - radius, y + radius])
+    ax.set_zlim3d([z - radius, z + radius])
+
+def plot_3d_from_logger(logger, sphere_obstacles):
     """
     Plot actual and reference path in a 3D figure
     """
@@ -257,6 +280,16 @@ def plot_3d_from_logger(logger):
     ax.plot(logger.states[j, 0, :], logger.states[j, 1, :], logger.states[j, 2, :], label=r'$r$')
     ax.plot(logger.controls[j, 0, :], logger.controls[j, 1, :], logger.controls[j, 2, :], label=r'$r_{ref}$')
 
+    # Plot obstacles
+    for obs in sphere_obstacles:
+        u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
+        x = np.cos(u)*np.sin(v)*obs[3]
+        y = np.sin(u)*np.sin(v)*obs[3]
+        z = np.cos(v)*obs[3]
+        ax.plot_surface(x+obs[0], y+obs[1], z+obs[2], color='r', alpha=0.5)
+
+    ax.set_box_aspect((1, 1, 1))
+    set_axes_equal(ax) # IMPORTANT - this is also required
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
