@@ -37,6 +37,7 @@ from gym_pybullet_drones.utils.utils import sync, str2bool
 
 from mpc_controller import *
 from time_parametrization import *
+from plotting import plot_translation_from_logger, plot_3d_from_logger
 
 DEFAULT_DRONES = DroneModel("cf2x")
 DEFAULT_NUM_DRONES = 1
@@ -121,7 +122,7 @@ def setup_simulation(settings: SimulationSettings, initial_xyzs: np.array, initi
 
 def run(settings: SimulationSettings):
     # spherical obstacles (x,y,z,radius)
-    sphereObstacles = [(1., 1., 1., .5), (3., 4., 5., 1.),
+    sphereObstacles = [(1., 0.5, 1., .5), (3., 4., 5., 1.),
                        (4, 2, 3, 1), (6, 3, 1, 2), (6, 1, 1, 2), (8, 1, 4, 1)]
 
 
@@ -134,15 +135,17 @@ def run(settings: SimulationSettings):
                            (10.0, 5.0, 5.0)])
 
     # Create time parametrized trajectory from given path
-    max_velocity = 0.75 # m/s
-    controller_time_step = 0.25
+    max_velocity = 0.5 # m/s
+    controller_time_step = 0.5
     trajectory_time_step = controller_time_step
-    trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.3)
+    trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.1, max_acceleration=3)
     # trajectory = trajectory_from_path_const_vel(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step)
+
 
     # Inital drone position(s)
     init_xyzs = np.array([trajectory.positions[:, 0]
                          for i in range(settings.num_drones)])
+    init_xyzs[:,2] = 0.05
     init_rpys = np.array([[0, 0,  i * (np.pi/2)/settings.num_drones]
                          for i in range(settings.num_drones)])
 
@@ -170,14 +173,23 @@ def run(settings: SimulationSettings):
               for i in range(settings.num_drones)}
     CTRL_EVERY_N_STEPS = int(np.floor(env.SIM_FREQ/settings.control_freq_hz))
     START = time.time()
-    TIMESTEP = 1 / env.SIM_FREQ * aggr_phy_steps
+    TIMESTEP = 1 / env.SIM_FREQ
     trans_error = 0
     target_index = 0
     i = 0
+    # while True:
     while target_index != trajectory.number_of_points-1 or trans_error > 0.05:
 
         # Step the simulation
         obs, _, _, _ = env.step(action)
+
+        # log inital
+        if i == 0 and (settings.log or settings.plot):
+                logger.log(drone=0,
+                        timestamp=i * TIMESTEP,
+                        state=obs[str(0)]["state"],
+                        control= np.hstack([trajectory.positions[:,0], trajectory.velocities[:,0], trajectory.orientation_rpy[:,0], trajectory.orientation_rpy_rates[:,0]])
+                        )
 
         # Compute control at the desired frequency
         if i % CTRL_EVERY_N_STEPS == 0:
@@ -199,10 +211,11 @@ def run(settings: SimulationSettings):
         # Log the simulation
         if settings.log or settings.plot:
             for j in range(settings.num_drones):
+                # print(current_target)
                 logger.log(drone=j,
-                        timestamp=i/env.SIM_FREQ,
+                        timestamp=i * TIMESTEP,
                         state=obs[str(j)]["state"],
-                        # control= np.hstack([current_target[0:3], current_target[6:9], current_target[3:6], current_target[9:12]])
+                        control= current_target
                         )
 
         # Printout
@@ -231,7 +244,9 @@ def run(settings: SimulationSettings):
         logger.save()
         logger.save_as_csv("pid")  # Optional CSV save
     if settings.plot:
-        logger.plot()
+        plot_translation_from_logger(logger, trajectory)
+        plot_3d_from_logger(logger)
+        input()
 
 
 if __name__ == "__main__":

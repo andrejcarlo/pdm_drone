@@ -124,7 +124,7 @@ class MPCControl(BaseControl):
 
         # weight cost matrices
         self.W_output = np.diag(
-            [5, 5, 5, 1, 1, 1, 0.001, 0.001, 0.001, 0.05, 0.05, 0.05])
+            [1, 1, 1, 1, 1, 1, 0.001, 0.001, 0.001, 0.05, 0.05, 0.05])
         self.W_input = np.identity(4)*0.01
 
     ################################################################################
@@ -179,7 +179,7 @@ class MPCControl(BaseControl):
 
     ################################################################################
 
-    def _getNextGoalIndices(self, current_time, target_times, cur_pos, target_pos):
+    def _getNextGoalIndices(self, current_time, target_times, cur_pos, target_pos, select_spatially_closest=False):
         """
         Computes the upcoming next self.N waypoints to target and returns their indices.
         current_time:
@@ -188,7 +188,16 @@ class MPCControl(BaseControl):
             (n)-shaped float array with desired arrival times of waypoints
         """
         next_goal_indices = np.zeros(self.N, dtype=int)
-        upcoming_goal_index = min(np.linalg.norm(target_pos - np.reshape(cur_pos, (3,1)), axis=0).argmin()+1, target_times.shape[0]-1)
+
+        if select_spatially_closest:
+            upcoming_goal_index = min(np.linalg.norm(target_pos - np.reshape(cur_pos, (3,1)), axis=0).argmin()+1, target_times.shape[0]-1)
+        else:
+            delta_times = target_times - current_time
+            if (delta_times <= 0).all():
+                upcoming_goal_index = target_times.shape[0]-1
+            else:
+                upcoming_goal_index = np.where(
+                    delta_times > 0, delta_times, np.inf).argmin()
 
         remaining_goals_count = target_times.shape[0] - upcoming_goal_index
         if remaining_goals_count >= self.N:
