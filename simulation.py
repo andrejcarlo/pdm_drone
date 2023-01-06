@@ -120,25 +120,21 @@ def setup_simulation(settings: SimulationSettings, initial_xyzs: np.array, initi
                     )
     return env, pyb_client, logger, aggr_phy_steps
 
-def run(settings: SimulationSettings):
-    # spherical obstacles (x,y,z,radius)
-    sphereObstacles = [(1., 0.5, 1., .5), (3., 4., 5., 1.),
-                       (4, 2, 3, 1), (6, 3, 1, 2), (6, 1, 1, 2), (8, 1, 4, 1)]
+def run(settings: SimulationSettings, target_path, sphere_obstacles):
+    if not(isinstance(target_path, list) and len(target_path) >= 2 and \
+        all(isinstance(x,tuple) and len(x) == 3 for x in target_path)):
+        raise ValueError("Target path is incorrect type/dimension")
+    target_path = np.array(target_path)
 
-
-    target_path = np.array([(0.0, 0.0, 0.0),
-                           (-0.2650163269488669,
-                            0.537122213385431, 0.8007909055043438),
-                           (0.08267007495844414,
-                            0.8806578958716949, 0.9170031402950918),
-                           (4.797320063086116, 3.7664814014520025, 4.9663196295733085),
-                           (10.0, 5.0, 5.0)])
+    if not(isinstance(sphere_obstacles, list) and \
+        all(isinstance(x,tuple) and len(x) == 4 for x in sphere_obstacles)):
+        raise ValueError("Obstacles are incorrect type/dimension")
 
     # Create time parametrized trajectory from given path
-    max_velocity = 0.5 # m/s
+    max_velocity = 3 # m/s
     controller_time_step = 0.5
     trajectory_time_step = controller_time_step
-    trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.1, max_acceleration=3)
+    trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.5, max_acceleration=1.5)
     # trajectory = trajectory_from_path_const_vel(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step)
 
 
@@ -154,9 +150,9 @@ def run(settings: SimulationSettings):
         settings, init_xyzs, init_rpys)
 
     # Load obstacles
-    for o in sphereObstacles:
+    for o in sphere_obstacles:
         colSphereId = p.createCollisionShape(p.GEOM_SPHERE, radius=o[3])
-        sphere = p.createMultiBody(0, colSphereId, -1, o[0:3])
+        p.createMultiBody(0, colSphereId, -1, o[0:3])
 
     # Plot waypoints (only for debugging)
     tmp = p.createVisualShape(p.GEOM_SPHERE, radius=0.025)
@@ -245,61 +241,5 @@ def run(settings: SimulationSettings):
         logger.save_as_csv("pid")  # Optional CSV save
     if settings.plot:
         plot_translation_from_logger(logger, trajectory)
-        plot_3d_from_logger(logger)
+        plot_3d_from_logger(logger, sphere_obstacles)
         input()
-
-
-if __name__ == "__main__":
-    # Define and parse (optional) arguments for the script
-    parser = argparse.ArgumentParser(
-        description='Helix flight script using CtrlAviary or VisionAviary and DSLPIDControl')
-    parser.add_argument('--drone',              default=DEFAULT_DRONES,     type=DroneModel,
-                        help='Drone model (default: CF2X)', metavar='', choices=DroneModel)
-    parser.add_argument('--num_drones',         default=DEFAULT_NUM_DRONES,
-                        type=int,           help='Number of drones (default: 3)', metavar='')
-    parser.add_argument('--physics',            default=DEFAULT_PHYSICS,      type=Physics,
-                        help='Physics updates (default: PYB)', metavar='', choices=Physics)
-    parser.add_argument('--vision',             default=DEFAULT_VISION,      type=str2bool,
-                        help='Whether to use VisionAviary (default: False)', metavar='')
-    parser.add_argument('--gui',                default=DEFAULT_GUI,       type=str2bool,
-                        help='Whether to use PyBullet GUI (default: True)', metavar='')
-    parser.add_argument('--record_video',       default=DEFAULT_RECORD_VISION,
-                        type=str2bool,      help='Whether to record a video (default: False)', metavar='')
-    parser.add_argument('--plot',               default=DEFAULT_PLOT,       type=str2bool,
-                        help='Whether to plot the simulation results (default: True)', metavar='')
-    parser.add_argument('--user_debug_gui',     default=DEFAULT_USER_DEBUG_GUI,      type=str2bool,
-                        help='Whether to add debug lines and parameters to the GUI (default: False)', metavar='')
-    parser.add_argument('--aggregate',          default=DEFAULT_AGGREGATE,       type=str2bool,
-                        help='Whether to aggregate physics steps (default: True)', metavar='')
-    parser.add_argument('--obstacles',          default=DEFAULT_OBSTACLES,       type=str2bool,
-                        help='Whether to add obstacles to the environment (default: True)', metavar='')
-    parser.add_argument('--simulation_freq_hz', default=DEFAULT_SIMULATION_FREQ_HZ,
-                        type=int,           help='Simulation frequency in Hz (default: 240)', metavar='')
-    parser.add_argument('--control_freq_hz',    default=DEFAULT_CONTROL_FREQ_HZ,
-                        type=int,           help='Control frequency in Hz (default: 48)', metavar='')
-    parser.add_argument('--duration_sec',       default=DEFAULT_DURATION_SEC,         type=int,
-                        help='Duration of the simulation in seconds (default: 5)', metavar='')
-    parser.add_argument('--output_folder',     default=DEFAULT_OUTPUT_FOLDER, type=str,
-                        help='Folder where to save logs (default: "results")', metavar='')
-    parser.add_argument('--colab',              default=DEFAULT_COLAB, type=bool,
-                        help='Whether example is being run by a notebook (default: "False")', metavar='')
-    parser.add_argument('--log',              default=DEFAULT_LOG, type=bool,
-                        help='Whether to save logs (default: "False")', metavar='')
-    args = parser.parse_args()
-    settings = SimulationSettings(args.drone,
-                                  args.num_drones,
-                                  args.physics,
-                                  args.vision,
-                                  args.gui,
-                                  args.record_video,
-                                  args.plot,
-                                  args.user_debug_gui,
-                                  args.aggregate,
-                                  args.obstacles,
-                                  args.simulation_freq_hz,
-                                  args.control_freq_hz,
-                                  args.duration_sec,
-                                  args.output_folder,
-                                  args.colab,
-                                  args.log)
-    run(settings)
