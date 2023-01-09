@@ -120,7 +120,7 @@ def run(settings: SimulationSettings, target_path, sphere_obstacles):
     max_velocity = 3 # m/s
     controller_time_step = 0.5
     trajectory_time_step = controller_time_step
-    trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.5, max_acceleration=1.5)
+    trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.2, max_acceleration=1.5)
     # trajectory = trajectory_from_path_const_vel(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step)
 
 

@@ -181,7 +181,7 @@ def plot_translation_from_logger(logger, target):
         for j in range(logger.NUM_DRONES):
             axs[row, col].plot(t, logger.states[j, 0, :], label=r'$x$')
             # axs[row, col].plot(t, logger.controls[j,0, :], label=r'$x_{ref}$')
-            axs[row, col].plot(target.time_points, target.positions[0,:], label=r'$x_{ref, 2}$', marker='o')
+            axs[row, col].plot(target.time_points, target.positions[0,:], label=r'$x_{ref, 2}$')
 
         axs[row, col].set_xlabel('time')
         axs[row, col].set_ylabel('x (m)')
@@ -190,7 +190,7 @@ def plot_translation_from_logger(logger, target):
         for j in range(logger.NUM_DRONES):
             axs[row, col].plot(t, logger.states[j, 1, :], label=r'$y$')
             # axs[row, col].plot(t, logger.controls[j,1, :], label=r'$y_{ref}$')
-            axs[row, col].plot(target.time_points, target.positions[1,:], label=r'$y_{ref, 2}$', marker='o')
+            axs[row, col].plot(target.time_points, target.positions[1,:], label=r'$y_{ref, 2}$')
         axs[row, col].set_xlabel('time')
         axs[row, col].set_ylabel('y (m)')
 
@@ -198,7 +198,7 @@ def plot_translation_from_logger(logger, target):
         for j in range(logger.NUM_DRONES):
             axs[row, col].plot(t, logger.states[j, 2, :], label=r'$z$')
             # axs[row, col].plot(t, logger.controls[j,2, :], label=r'$z_{ref}$')
-            axs[row, col].plot(target.time_points, target.positions[2,:], label=r'$z_{ref, 2}$', marker='o')
+            axs[row, col].plot(target.time_points, target.positions[2,:], label=r'$z_{ref, 2}$')
         axs[row, col].set_xlabel('time')
         axs[row, col].set_ylabel('z (m)')
 
@@ -208,21 +208,21 @@ def plot_translation_from_logger(logger, target):
         for j in range(logger.NUM_DRONES):
             axs[row, col].plot(t, logger.states[j, 3, :], label=r'$v_x$')
             # axs[row, col].plot(t, logger.controls[j,3, :], label=r'$v_{x,ref}$')
-            axs[row, col].plot(target.time_points, target.velocities[0,:], label=r'$v_{x, ref, 2}$', marker='o')
+            axs[row, col].plot(target.time_points, target.velocities[0,:], label=r'$v_{x, ref, 2}$')
         axs[row, col].set_xlabel('time')
         axs[row, col].set_ylabel('vx (m/s)')
         row = 1
         for j in range(logger.NUM_DRONES):
             axs[row, col].plot(t, logger.states[j, 4, :], label=r'$v_y$')
             # axs[row, col].plot(t, logger.controls[j,4, :], label=r'$v_{y,ref}$')
-            axs[row, col].plot(target.time_points, target.velocities[1,:], label=r'$v_{y, ref, 2}$', marker='o')
+            axs[row, col].plot(target.time_points, target.velocities[1,:], label=r'$v_{y, ref, 2}$')
         axs[row, col].set_xlabel('time')
         axs[row, col].set_ylabel('vy (m/s)')
         row = 2
         for j in range(logger.NUM_DRONES):
             axs[row, col].plot(t, logger.states[j, 5, :], label=r'$v_z$')
             # axs[row, col].plot(t, logger.controls[j,5, :], label=r'$v_{z,ref}$')
-            axs[row, col].plot(target.time_points, target.velocities[2,:], label=r'$v_{z, ref, 2}$', marker='o')
+            axs[row, col].plot(target.time_points, target.velocities[2,:], label=r'$v_{z, ref, 2}$')
         axs[row, col].set_xlabel('time')
         axs[row, col].set_ylabel('vz (m/s)')
 
@@ -241,7 +241,7 @@ def plot_translation_from_logger(logger, target):
                             hspace=0.0
                             )
 
-        plt.savefig(os.path.join('results', datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + 'output.png'))
+        plt.savefig(os.path.join('saved_results_simulation', datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + 'output.png'))
         fig.show()
 
 def set_axes_equal(ax: plt.Axes):
