@@ -4,9 +4,6 @@ Created on Mon Nov 28 21:26:12 2022
 
 @author: Gebra
 """
-
-%matplotlib widget
-
 import math
 import random
 

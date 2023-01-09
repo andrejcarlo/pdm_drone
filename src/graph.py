@@ -1,0 +1,87 @@
+import numpy as np
+from random import random, uniform, randrange
+
+# line class with some metrics to ease graph creation
+class Line():
+    # initialize some metrics
+    def __init__(self, p0, p1):
+        self.p0 = np.array(p0)
+        self.p1 = np.array(p1)
+        self.direction = np.array(p1) - np.array(p0)
+        self.distance = np.linalg.norm(self.direction)
+        self.direction = self.direction/self.distance # normalize
+
+    def path(self, t):
+        return self.p0 + t * self.dirn
+
+# graph class
+class Graph:
+    # initialize some metrix
+    def __init__(self, startposition, endposition):
+        self.startposition = startposition
+        self.endposition = endposition
+        self.found_path = False
+        # size of searchbox
+        self.searchboxsize_x = (startposition[0] - endposition[0])
+        self.searchboxsize_y = (startposition[1] - endposition[1])
+        self.searchboxsize_z = (startposition[2] - endposition[2])
+        # location of seachbox startpoint: two times size of box between start and end position
+        self.searchbegin_x = self.startposition[0] + (self.searchboxsize_x/2) 
+        self.searchbegin_y = self.startposition[1] + (self.searchboxsize_y/2) 
+        self.searchbegin_z = self.startposition[2] + (self.searchboxsize_z/2) 
+        
+        self.vertices = [startposition]
+        self.edges = [] # contains the indices of the vertices
+        self.indices = {startposition:0} # dictonary with indices for the vertices
+        self.distances = {0:0.} # dictonary with distances for each index
+        self.connections = {0:[]} # dictonary with connecting node(s)
+        
+    # creating a random position within search frame
+    def randpos(self, obstacles = None, rand_radius = None, bias = None, obstacle_bias = False) -> tuple:
+        if obstacle_bias == False:
+            # create random values between 0 and 1
+            x = random()
+            y = random()
+            z = random()
+            # convert to value within searchbox
+            posx = self.searchbegin_x - x*self.searchboxsize_x*2
+            posy = self.searchbegin_y - y*self.searchboxsize_y*2
+            posz = self.searchbegin_z - z*self.searchboxsize_z*2
+            
+        else:
+            select = random()
+            if select > bias:
+                # create random values between 0 and 1
+                x = random()
+                y = random()
+                z = random()
+                # convert to value within searchbox
+                posx = self.searchbegin_x - x*self.searchboxsize_x*2
+                posy = self.searchbegin_y - y*self.searchboxsize_y*2
+                posz = self.searchbegin_z - z*self.searchboxsize_z*2
+            else:
+                rand_obs = randrange(0,len(obstacles))
+                direction = np.array((uniform(-1,1), uniform(-1,1), uniform(-1,1)))
+                length = np.linalg.norm(direction)
+                rand_pos = (direction/length)*(obstacles[rand_obs][3] + uniform(0.,rand_radius))
+                posx = obstacles[rand_obs][0]+ rand_pos[0]
+                posy = obstacles[rand_obs][1]+ rand_pos[1]
+                posz = obstacles[rand_obs][2]+ rand_pos[2]
+                
+        return posx, posy, posz
+
+    def add_vertex(self, vertex):
+        vertex = tuple(vertex)
+        try: # check if vertex already exists
+            idx = self.indices[vertex]
+        except:# otherwise add to list and dictionaries
+            idx = len(self.vertices)
+            self.vertices.append(vertex)
+            self.indices[vertex] = idx
+            self.connections[idx] = []
+        return idx
+
+    def add_edge(self, start_node, end_node, cost):
+        self.edges.append((start_node, end_node)) # add edge based on indices
+        self.connections[start_node].append((end_node, cost)) #add the connecting nodes and costs
+        self.connections[end_node].append((start_node, cost))
