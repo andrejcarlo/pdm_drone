@@ -294,5 +294,5 @@ def plot_3d_from_logger(logger, sphere_obstacles):
     ax.set_ylabel('y')
     ax.set_zlabel('z')
     ax.legend()
-    plt.savefig(os.path.join('results', datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + 'output_2.png'))
+    plt.savefig(os.path.join('saved_results_simulation', datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + 'output_2.png'))
     fig.show()
