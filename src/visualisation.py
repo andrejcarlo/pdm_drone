@@ -66,7 +66,7 @@ def plot_graph(Graph, obstacles, startposition, endposition, RRT_time, found_pat
     
     plot_obstacles(obstacles, ax)
     if visualize_all:
-        ax.scatter(vex_x,vex_y,vex_z, s=50, color="b", zorder=2)
+        ax.scatter(vex_x,vex_y,vex_z, s=10, color="b", zorder=2)
         # for i, j, k in zip(vex_x, vex_y, vex_z):
         #     ax.text3D(i + 0.1, j+0.1, k +0.1, '({}, {}, {})'.format(round(i,2), round(j,2), round(k,2)))
 

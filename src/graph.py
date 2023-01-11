@@ -80,7 +80,6 @@ class Graph:
                     posy = obstacles[rand_obs][1]+ rand_pos[1]
                     posz = obstacles[rand_obs][2]+ rand_pos[2]
                 if obstacles[rand_obs][-1] == 'cube':
-                    print("Sampled next to obstacle")
                     # resample around cube 
                     # get center of cube and sample either in x,y,z based on cube width, height, depth
                     obs = obstacles[rand_obs]
@@ -93,7 +92,6 @@ class Graph:
                     posx = rand_pos[0]
                     posy = rand_pos[1]
                     posz = rand_pos[2]
-                    print("obstacle center ", center, " with sampled point, ", rand_pos)
                     
         return posx, posy, posz
 
