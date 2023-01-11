@@ -24,6 +24,11 @@ class PRM:
     def runPRM(self, initialRandomSeed = 42, visualise=False):
         seed = initialRandomSeed
         self.iterations = 0
+
+        # do an initial check if start and end are inside obstacles
+        if in_obstacle(self.allObs, self.start) or in_obstacle(self.allObs, self.destination):
+            raise Exception("Start/Goal have been initialized inside obstacles!")
+
         # Keep resampling if no solution found
         while(not self.solutionFound and (self.iterations  < self.maxNumIterations) ):
             print("PRM Iteration {}, with N:{}, Seed {}".format(self.iterations, self.numOfCoords,seed))
