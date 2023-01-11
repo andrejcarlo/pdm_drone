@@ -95,11 +95,12 @@ def plot_graph(Graph, obstacles, startposition, endposition, RRT_time, found_pat
         print('No path was found.')
         print('The RRT generation took: '+str(round(RRT_time,2))+ 's')
         
+    # print(size)
     ax.set_box_aspect(aspect = (size_x/size_z,size_y/size_z,1))
     ax.set_xlabel('$X$', fontsize=20)
     ax.set_ylabel('$Y$', fontsize=20)
     ax.set_zlabel('$Z$', fontsize=20)
-    #ax.can_zoom()
+    # ax.can_zoom()
     #ax.set_aspect('equal', adjustable='box')
     plt.show()
 
@@ -130,7 +131,7 @@ def plot_obstacles(obstacles, ax):
             pc = Poly3DCollection(data, facecolors='k', linewidths=1, edgecolors='k',alpha=0.25, zorder=5)
             ax.add_collection3d(pc)
 
-def plot_obstacle_map(obstacles):
+def plot_obstacle_map(obstacles, start, goal, set_limits=True):
 
     fig = plt.figure(figsize=(10, 10))
 
@@ -138,11 +139,15 @@ def plot_obstacle_map(obstacles):
     ax.set_xlabel('$X$', fontsize=20)
     ax.set_ylabel('$Y$', fontsize=20)
     ax.set_zlabel('$Z$', fontsize=20)
+    if (set_limits):
+        ax.set_xlim3d(0, 22)
+        ax.set_ylim3d(0, 12)
 
-    ax.set_xlim3d(0, 22)
-    ax.set_ylim3d(0, 12)
     ax.set_zlim3d(0, 12)
 
+    # plot start and goal
+    ax.scatter(start[0],start[1],start[2],s=50, color="y")
+    ax.scatter(goal[0],goal[1],goal[2],s=50, color="y")
 
     plot_obstacles(obstacles, ax)
 

@@ -36,9 +36,9 @@ class Graph:
             self.searchboxsize_y = (startposition[1] - endposition[1])
             self.searchboxsize_z = (startposition[2] - endposition[2])
             # location of seachbox startpoint: two times size of box between start and end position
-            self.searchbegin_x = self.startposition[0] + (self.searchboxsize_x/2) 
-            self.searchbegin_y = self.startposition[1] + (self.searchboxsize_y/2) 
-            self.searchbegin_z = self.startposition[2] + (self.searchboxsize_z/2) 
+            self.searchbegin_x = self.startposition[0] + (self.searchboxsize_x/4)
+            self.searchbegin_y = self.startposition[1] + (self.searchboxsize_y/4)
+            self.searchbegin_z = self.startposition[2] + (self.searchboxsize_z/4)
         
         self.vertices = [startposition]
         self.edges = [] # contains the indices of the vertices
@@ -80,6 +80,7 @@ class Graph:
                     posy = obstacles[rand_obs][1]+ rand_pos[1]
                     posz = obstacles[rand_obs][2]+ rand_pos[2]
                 if obstacles[rand_obs][-1] == 'cube':
+                    print("Sampled next to obstacle")
                     # resample around cube 
                     # get center of cube and sample either in x,y,z based on cube width, height, depth
                     obs = obstacles[rand_obs]
@@ -92,6 +93,7 @@ class Graph:
                     posx = rand_pos[0]
                     posy = rand_pos[1]
                     posz = rand_pos[2]
+                    print("obstacle center ", center, " with sampled point, ", rand_pos)
                     
         return posx, posy, posz
 

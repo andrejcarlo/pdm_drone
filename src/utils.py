@@ -61,7 +61,7 @@ def intersection(obstacle, line):
 # adapted from intersectCube in https://github.com/evanw/webgl-path-tracing/blob/master/webgl-path-tracing.js
 # compute the near and far intersections of the cube (stored in the x and y components) using the slab method
 # no intersection means vec.x > vec.y (really tNear > tFar)
-def intersectAABB(rayOrigin, rayDir, cubeMin, cubeMax):
+def intersectAABB(rayOrigin, rayDir, rayEnd, cubeMin, cubeMax):
     """
     rayOrigin, rayDir, cubeMin, cubeMax: vec3
     """
@@ -72,7 +72,7 @@ def intersectAABB(rayOrigin, rayDir, cubeMin, cubeMax):
     tNear = max(max(t1[0], t1[1]), t1[2]); # float
     tFar = min(min(t2[0], t2[1]), t2[2]);  # float
 
-    if tNear < tFar:
+    if tNear < tFar and not distance(t1,t2) > distance(rayOrigin, rayEnd):
         return True
         
     return False
@@ -107,7 +107,7 @@ def trough_obstacle(obstacles,line):
             if intersection(obstacle, line):
                 return True
         elif obstacle[-1] == 'cube':
-            line_intersects_cube = intersectAABB(line.p0, line.direction, np.array(obstacle[0]), np.array(obstacle[1]))
+            line_intersects_cube = intersectAABB(line.p0, line.direction, line.p1, np.array(obstacle[0]), np.array(obstacle[1]))
             if line_intersects_cube:
                 return True
     return False

@@ -17,6 +17,9 @@ if __name__ == '__main__':
     startposition = (20., 0., 0.)
     endposition = (1., 10., 5.)
 
+    startposition = (10., 10., 3.)
+    endposition = (55., 55., 3.)
+
     # DEFINE MAPS HERE
     map0 = [
         (5., 2.5, 2.5, 3, 'sphere'),
@@ -34,32 +37,35 @@ if __name__ == '__main__':
 
     ]
 
-    obstacles = map1
+    basic_cube = ([0.0, 0.0, 0.0], [5.0, 5.0, 5.0], 'cube')
 
-    # min, max, 'cube' ( y, x, z)
-    # x, y, z, radius
+    map2 = []
 
-    # RRT, RRT Star, Biased RRT*
+    # print([[basic_cube[0][0]+x, basic_cube[0][1]+x, basic_cube[0][2]] for x in np.linspace(0, 10, 1)])
+    for i in np.arange(0,50,15):
+        for j in np.arange(0,50,15):
 
-    # obstacles = [(1.,1.,1.,.5),(3.,4.,5.,1.),(4,2,3,1),(6,3,1,2),(6,1,1,2),(8,1,4,1)]
-    # obstacles = [(5,-1,-1,1.5),(5,1,-1,1.5),(5,3,-1,1.5),(5,5,-1,1.5),(5,-1,1,1.5),(5,1,1,1.5),(5,3,1,1.5),(5,5,1,1.5),(5,-1,3,1.5),(5,3.5,3,1.5),(5,0,3,1.5),(5,5,3,1.5),(5,-1,5,1.5),(5,1,5,1.5),(5,3,5,1.5),(5,5,5,1.5)] #hole
-    # obstacles = [(5,2,3,0.5),(5,2,2,0.5),(5,3,2,0.5),(5,3,3,0.5),
-    # (5,1,2.5,1),(5,4,2.5,1),(5,2.5,1,1),(5,2.5,4,1),(5,1,1,1),(5,1,4,1),(5,4,1,1),(5,4,4,1)]
+            map2.append(([basic_cube[0][0]+i, basic_cube[0][1]+j, basic_cube[0][2]], 
+                    [basic_cube[1][0]+i, basic_cube[1][1]+j, basic_cube[1][2]], 'cube'))
 
-    iterations = 1000
-    threshold = 2.  # for marking the end position as found
-    stepsize = 1.  # stepsize of newly generated vertices
+    # print(map2)
+
+    obstacles = map2
+
+    iterations = 500
+    threshold = 1.  # for marking the end position as found
+    stepsize = 5.  # stepsize of newly generated vertices
 
     # some parameters for the obstacle bias attempt
     obstacle_bias = True
-    bias = 0.8
-    rand_radius = 0.5
+    bias = 0.9
+    rand_radius = 5
 
     # path length/optimal length
     goal = None
 
     # UNCOMMENT TO VIEW MAP
-    plot_obstacle_map(obstacles)
+    plot_obstacle_map(obstacles, startposition, endposition, set_limits=False)
 
     use_prm = False
     use_rrt = True
@@ -68,7 +74,7 @@ if __name__ == '__main__':
 
         # UNCOMMENT TO RUN PLANNER
         start_prm = time.time() #record start time
-        prm_planner = PRM(200, obstacles= obstacles, start= startposition, destination = endposition)
+        prm_planner = PRM(5000, obstacles= obstacles, start= startposition, destination = endposition)
         prm_planner.runPRM()
         prm_time = time.time() - start_prm
 
@@ -96,7 +102,8 @@ if __name__ == '__main__':
                     bias = bias,
                     obstacle_bias= obstacle_bias,
                     stepsize= stepsize,
-                    goal= goal)
+                    goal= goal,
+                    fix_room_size=False)
 
         end_RRT = time.time()
         RRT_time = end_RRT - start_RRT

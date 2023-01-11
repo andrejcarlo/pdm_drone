@@ -113,6 +113,7 @@ def iRRT_s(startposition, endposition, obstacles, iterations, threshold, rand_ra
     optimal = distance(startposition,endposition)
     if goal is not None: iterations = 5000
     for i in range(iterations):
+        print("Iteration ", i)
         randpos = RRT_Graph.randpos(obstacles, rand_radius, bias, obstacle_bias)
         
         if RRT_Graph.found_path:             
