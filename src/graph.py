@@ -86,9 +86,9 @@ class Graph:
                     center = np.median(np.array([obs[0], obs[1]]), axis=0)
                     direction = np.array((uniform(-1,1), uniform(-1,1), uniform(-1,1)))
                     length = np.linalg.norm(direction)
-                    dimensions_cube = np.array(obs[1]) - np.array(obs[0])
+                    dimensions_cube = (np.array(obs[1]) - np.array(obs[0])) + uniform(0.,rand_radius)
                     # center base_point, pick a direction, mulitply with width/2, height/2, depth/2 and add offset rand_radius
-                    rand_pos = center + np.multiply((direction/length),dimensions_cube/2) + uniform(0.,rand_radius)
+                    rand_pos = center + np.multiply((direction/length),dimensions_cube/2)
                     posx = rand_pos[0]
                     posy = rand_pos[1]
                     posz = rand_pos[2]
