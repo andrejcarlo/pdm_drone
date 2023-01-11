@@ -17,6 +17,7 @@ from src.time_parametrization import *
 from src.visualization_simulation import (
     plot_translation_from_logger,
     plot_3d_from_logger,
+    get_trajectory_from_logger,
 )
 
 DEFAULT_DRONES = DroneModel("cf2x")
@@ -284,4 +285,10 @@ def run(settings: SimulationSettings, target_path, obstacles, scale_factor=0.1 /
     if settings.plot:
         plot_translation_from_logger(logger, trajectory)
         plot_3d_from_logger(logger, sphere_obstacles, box_obstacles)
-        input()
+
+    if settings.log or settings.plot:
+        pos, t = get_trajectory_from_logger(logger)
+        pos = pos / scale_factor
+        return pos, t
+    else:
+        return None, None

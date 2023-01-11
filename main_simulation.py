@@ -201,4 +201,8 @@ if __name__ == "__main__":
         else:
             raise RuntimeError("No path found")
 
-    run(settings, target_path, obstacles)
+    # run simulation
+    position, t = run(settings, target_path, obstacles)
+
+    # keep figures open
+    input()

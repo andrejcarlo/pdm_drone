@@ -374,14 +374,14 @@ def plot_3d_from_logger(logger, sphere_obstacles, box_obstacles):
         z = np.cos(v) * obs[3]
         ax.plot_surface(x + obs[0], y + obs[1], z + obs[2], color="r", alpha=0.5)
 
-    # for obs in box_obstacles:
-    #     size = obs[3:6]
-    #     xyz = np.array(obs[0:3]) - np.array(size)/2
-    #     X, Y, Z = cuboid_data(tuple(xyz), size)
-    #     ax.plot_surface(X, Y, Z, rstride=1, cstride=1)
+    for obs in box_obstacles:
+        size = obs[3:6]
+        xyz = np.array(obs[0:3]) - np.array(size) / 2
+        X, Y, Z = cuboid_data(tuple(xyz), size)
+        ax.plot_surface(X, Y, Z, rstride=1, cstride=1, alpha=0.25, zorder=5)
 
     ax.set_box_aspect((1, 1, 1))
-    set_axes_equal(ax)  # IMPORTANT - this is also required
+    set_axes_equal(ax)
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
@@ -393,3 +393,9 @@ def plot_3d_from_logger(logger, sphere_obstacles, box_obstacles):
         )
     )
     fig.show()
+
+
+def get_trajectory_from_logger(logger):
+    t = np.squeeze(logger.timestamps)
+    pos = logger.states[0, 0:3, :]
+    return pos, t
