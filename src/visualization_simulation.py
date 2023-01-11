@@ -170,7 +170,7 @@ def plot_translation_from_logger(logger, target):
         """Plot actual and reference position and velocity from logger
         """
         #### Loop over colors and line styles ######################
-        plt.rc('axes', prop_cycle=(cycler('color', ['g', 'y', 'b', 'r']) + cycler('linestyle', ['-', ':', '--', '-.']) ))
+        plt.rc('axes', prop_cycle=(cycler('color', ['g', 'b', 'y', 'r']) + cycler('linestyle', ['-', ':', '--', '-.']) ))
         fig, axs = plt.subplots(3, 2)
         # t = np.arange(0, logger.timestamps.shape[1]) * 1/logger.LOGGING_FREQ_HZ
         t = np.squeeze(logger.timestamps)
@@ -182,64 +182,63 @@ def plot_translation_from_logger(logger, target):
             axs[row, col].plot(t, logger.states[j, 0, :], label=r'$x$')
             # axs[row, col].plot(t, logger.controls[j,0, :], label=r'$x_{ref}$')
             axs[row, col].plot(target.time_points, target.positions[0,:], label=r'$x_{ref, 2}$')
-
-        axs[row, col].set_xlabel('time')
-        axs[row, col].set_ylabel('x (m)')
+        axs[row, col].set_ylabel(r'$x \;(m)$')
 
         row = 1
         for j in range(logger.NUM_DRONES):
             axs[row, col].plot(t, logger.states[j, 1, :], label=r'$y$')
             # axs[row, col].plot(t, logger.controls[j,1, :], label=r'$y_{ref}$')
             axs[row, col].plot(target.time_points, target.positions[1,:], label=r'$y_{ref, 2}$')
-        axs[row, col].set_xlabel('time')
-        axs[row, col].set_ylabel('y (m)')
+        axs[row, col].set_ylabel(r'$y \;(m)$')
 
         row = 2
         for j in range(logger.NUM_DRONES):
             axs[row, col].plot(t, logger.states[j, 2, :], label=r'$z$')
             # axs[row, col].plot(t, logger.controls[j,2, :], label=r'$z_{ref}$')
             axs[row, col].plot(target.time_points, target.positions[2,:], label=r'$z_{ref, 2}$')
-        axs[row, col].set_xlabel('time')
-        axs[row, col].set_ylabel('z (m)')
+        axs[row, col].set_xlabel(r'$t \;(s)$')
+        axs[row, col].set_ylabel(r'$z \;(m)$')
 
         #### Velocity ##############################################
         row = 0
         col = 1
         for j in range(logger.NUM_DRONES):
-            axs[row, col].plot(t, logger.states[j, 3, :], label=r'$v_x$')
+            axs[row, col].plot(t, logger.states[j, 3, :], label=r'actual')
             # axs[row, col].plot(t, logger.controls[j,3, :], label=r'$v_{x,ref}$')
-            axs[row, col].plot(target.time_points, target.velocities[0,:], label=r'$v_{x, ref, 2}$')
-        axs[row, col].set_xlabel('time')
-        axs[row, col].set_ylabel('vx (m/s)')
+            axs[row, col].plot(target.time_points, target.velocities[0,:], label=r'reference')
+        axs[row, col].set_ylabel(r'$v_x \;(m/s)$')
         row = 1
         for j in range(logger.NUM_DRONES):
             axs[row, col].plot(t, logger.states[j, 4, :], label=r'$v_y$')
             # axs[row, col].plot(t, logger.controls[j,4, :], label=r'$v_{y,ref}$')
             axs[row, col].plot(target.time_points, target.velocities[1,:], label=r'$v_{y, ref, 2}$')
-        axs[row, col].set_xlabel('time')
-        axs[row, col].set_ylabel('vy (m/s)')
+        axs[row, col].set_ylabel(r'$v_y \;(m/s)$')
         row = 2
         for j in range(logger.NUM_DRONES):
             axs[row, col].plot(t, logger.states[j, 5, :], label=r'$v_z$')
             # axs[row, col].plot(t, logger.controls[j,5, :], label=r'$v_{z,ref}$')
             axs[row, col].plot(target.time_points, target.velocities[2,:], label=r'$v_{z, ref, 2}$')
-        axs[row, col].set_xlabel('time')
-        axs[row, col].set_ylabel('vz (m/s)')
+        axs[row, col].set_xlabel(r'$t \;(s)$')
+        axs[row, col].set_ylabel(r'$v_z \;(m/s)$')
 
         #### Drawing options #######################################
         for i in range (3):
             for j in range (2):
                 axs[i, j].grid(True)
-                axs[i, j].legend(loc='upper right',
-                         frameon=True
-                         )
-        fig.subplots_adjust(left=0.06,
-                            bottom=0.05,
-                            right=0.99,
-                            top=0.98,
-                            wspace=0.15,
-                            hspace=0.0
-                            )
+
+        axs[0, 1].legend(loc='upper right',
+                    frameon=True
+                    )
+
+        # fig.subplots_adjust(left=0.1,
+        #                     bottom=0.05,
+        #                     right=0.99,
+        #                     top=0.98,
+        #                     wspace=0.3,
+        #                     hspace=0.0
+        #                     )
+
+        fig.subplots_adjust(right=0.99, wspace=0.35, top=0.98, bottom=0.1, hspace=0.0)
 
         plt.savefig(os.path.join('saved_results_simulation', datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + 'output.png'))
         fig.show()
@@ -266,7 +265,27 @@ def _set_axes_radius(ax, origin, radius):
     ax.set_ylim3d([y - radius, y + radius])
     ax.set_zlim3d([z - radius, z + radius])
 
-def plot_3d_from_logger(logger, sphere_obstacles):
+def cuboid_data(o, size=(1,1,1)):
+    # code taken from
+    # https://stackoverflow.com/a/35978146/4124317
+    # suppose axis direction: x: to left; y: to inside; z: to upper
+    # get the length, width, and height
+    l, w, h = size
+    x = [[o[0], o[0] + l, o[0] + l, o[0], o[0]],
+         [o[0], o[0] + l, o[0] + l, o[0], o[0]],
+         [o[0], o[0] + l, o[0] + l, o[0], o[0]],
+         [o[0], o[0] + l, o[0] + l, o[0], o[0]]]
+    y = [[o[1], o[1], o[1] + w, o[1] + w, o[1]],
+         [o[1], o[1], o[1] + w, o[1] + w, o[1]],
+         [o[1], o[1], o[1], o[1], o[1]],
+         [o[1] + w, o[1] + w, o[1] + w, o[1] + w, o[1] + w]]
+    z = [[o[2], o[2], o[2], o[2], o[2]],
+         [o[2] + h, o[2] + h, o[2] + h, o[2] + h, o[2] + h],
+         [o[2], o[2], o[2] + h, o[2] + h, o[2]],
+         [o[2], o[2], o[2] + h, o[2] + h, o[2]]]
+    return np.array(x), np.array(y), np.array(z)
+
+def plot_3d_from_logger(logger, sphere_obstacles, box_obstacles):
     """
     Plot actual and reference path in a 3D figure
     """
@@ -287,6 +306,12 @@ def plot_3d_from_logger(logger, sphere_obstacles):
         y = np.sin(u)*np.sin(v)*obs[3]
         z = np.cos(v)*obs[3]
         ax.plot_surface(x+obs[0], y+obs[1], z+obs[2], color='r', alpha=0.5)
+
+    # for obs in box_obstacles:
+    #     size = obs[3:6]
+    #     xyz = np.array(obs[0:3]) - np.array(size)/2
+    #     X, Y, Z = cuboid_data(tuple(xyz), size)
+    #     ax.plot_surface(X, Y, Z, rstride=1, cstride=1)
 
     ax.set_box_aspect((1, 1, 1))
     set_axes_equal(ax) # IMPORTANT - this is also required

@@ -1,25 +1,16 @@
 """Script to run drone simulation using an mpc controller in gym_pybullet
 
 """
-import os
 import time
-import argparse
-from datetime import datetime
-import pdb
-import math
-import random
 import numpy as np
 import pybullet as p
-import matplotlib.pyplot as plt
 
 from dataclasses import dataclass
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
 from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
 from gym_pybullet_drones.envs.VisionAviary import VisionAviary
-from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
-from gym_pybullet_drones.control.SimplePIDControl import SimplePIDControl
 from gym_pybullet_drones.utils.Logger import Logger
-from gym_pybullet_drones.utils.utils import sync, str2bool
+from gym_pybullet_drones.utils.utils import sync
 
 from src.mpc_controller import *
 from src.time_parametrization import *
@@ -106,28 +97,41 @@ def setup_simulation(settings: SimulationSettings, initial_xyzs: np.array, initi
                     )
     return env, pyb_client, logger, aggr_phy_steps
 
-def run(settings: SimulationSettings, target_path, sphere_obstacles):
+def convert_obstacles(obstacles, obstacle_scale_factor):
+    sphere_obstacles = []
+    box_obstacles = []
+    for o in obstacles:
+        if o[-1] == 'sphere':
+            values = np.array(o[:-1]) * obstacle_scale_factor
+            sphere_obstacles.append(values)
+        elif o[-1] == 'cube':
+            corner0 = np.array(o[0])
+            corner1 = np.array(o[1])
+            xyz = (corner0 + corner1) / 2
+            size = np.abs(corner0 - corner1)
+            xyz = xyz * obstacle_scale_factor
+            size = size * obstacle_scale_factor
+            box_obstacles.append(tuple(xyz) + tuple(size))
+    return sphere_obstacles, box_obstacles
+
+def run(settings: SimulationSettings, target_path, obstacles, scale_factor = 0.1/0.5):
     if not(isinstance(target_path, list) and len(target_path) >= 2 and \
         all(isinstance(x,tuple) and len(x) == 3 for x in target_path)):
         raise ValueError("Target path is incorrect type/dimension")
-    target_path = np.array(target_path)
+    target_path = np.array(target_path) * scale_factor
 
-    if not(isinstance(sphere_obstacles, list) and \
-        all(isinstance(x,tuple) and len(x) == 4 for x in sphere_obstacles)):
-        raise ValueError("Obstacles are incorrect type/dimension")
+    sphere_obstacles, box_obstacles = convert_obstacles(obstacles, scale_factor)
 
     # Create time parametrized trajectory from given path
-    max_velocity = 3 # m/s
+    max_velocity = 1 # m/s
     controller_time_step = 0.5
     trajectory_time_step = controller_time_step
-    trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.2, max_acceleration=1.5)
+    trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.3, max_acceleration=1.5)
     # trajectory = trajectory_from_path_const_vel(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step)
-
 
     # Inital drone position(s)
     init_xyzs = np.array([trajectory.positions[:, 0]
                          for i in range(settings.num_drones)])
-    init_xyzs[:,2] = 0.05
     init_rpys = np.array([[0, 0,  i * (np.pi/2)/settings.num_drones]
                          for i in range(settings.num_drones)])
 
@@ -139,6 +143,12 @@ def run(settings: SimulationSettings, target_path, sphere_obstacles):
     for o in sphere_obstacles:
         colSphereId = p.createCollisionShape(p.GEOM_SPHERE, radius=o[3])
         p.createMultiBody(0, colSphereId, -1, o[0:3])
+
+    for o in box_obstacles:
+        xyz = o[0:3]
+        halfExtents = [e/2 for e in o[3:6]]
+        colBoxId = p.createCollisionShape(p.GEOM_BOX, halfExtents=halfExtents)
+        p.createMultiBody(0, colBoxId, -1, basePosition=xyz)
 
     # Plot waypoints (only for debugging)
     tmp = p.createVisualShape(p.GEOM_SPHERE, radius=0.025)
@@ -227,5 +237,5 @@ def run(settings: SimulationSettings, target_path, sphere_obstacles):
         logger.save_as_csv("pid")  # Optional CSV save
     if settings.plot:
         plot_translation_from_logger(logger, trajectory)
-        plot_3d_from_logger(logger, sphere_obstacles)
+        plot_3d_from_logger(logger, sphere_obstacles, box_obstacles)
         input()
