@@ -1,5 +1,7 @@
-from simulation import *
-from src.rrt import RRT, RRT_s, iRRT_s, dijkstra
+from src.simulation import *
+
+from src.utils import dijkstra
+from src.rrt import iRRT_s, RRT, RRT_s
 from src.prm import PRM
 
 if __name__ == "__main__":
@@ -8,11 +10,11 @@ if __name__ == "__main__":
         description="Helix flight script using CtrlAviary or VisionAviary and DSLPIDControl"
     )
     parser.add_argument(
-        "--rrt",
-        choices=["RRT", "RRT_s", "iRRT_s", "prm"],
+        "--planner",
+        choices=["RRT", "RRT_s", "iRRT_s", "PRM"],
         default="iRRT_s",
         type=str,
-        help="Which RRT algorithm to use (default: iRRT_s)",
+        help="Which planning algorithm to use (default: iRRT_s)",
         metavar="",
     )
     parser.add_argument(
@@ -80,61 +82,65 @@ if __name__ == "__main__":
     for idx, x in enumerate(sphere_obstacles_margin):
         sphere_obstacles_margin[idx] = (x[0], x[1], x[2], x[3] + obstacle_margin)
 
-    if args.rrt == "RRT":
-        G = RRT(
-            startposition,
-            endposition,
-            sphere_obstacles_margin,
-            iterations,
-            threshold,
-            rand_radius,
-            bias,
-            obstacle_bias,
-            stepsize,
-            goal,
-        )
-    elif args.rrt == "RRT_s":
-        G = RRT_s(
-            startposition,
-            endposition,
-            sphere_obstacles_margin,
-            iterations,
-            threshold,
-            rand_radius,
-            bias,
-            obstacle_bias,
-            stepsize,
-            goal,
-        )
-    elif args.rrt == "iRRT_s":
-        G = iRRT_s(
-            startposition,
-            endposition,
-            sphere_obstacles_margin,
-            iterations,
-            threshold,
-            rand_radius,
-            bias,
-            obstacle_bias,
-            stepsize,
-            goal,
-        )
-    elif args.prm == "prm":
+    if args.planner == "PRM":
         prm_planner = PRM(
-            200,
-            obstacles=obstacles,
+            iterations,
+            obstacles=sphere_obstacles_margin,
             start=startposition,
             destination=endposition,
-            goal=1.34,
+            goal=goal,
         )
         prm_planner.runPRM()
 
-    if G.found_path:
-        target_path = dijkstra(G)
-    elif prm_planner.solution_found:
-        target_path = prm_planner.found_path
+        if prm_planner.solutionFound:
+            target_path = prm_planner.found_path
+        else:
+            raise RuntimeError("No path found")
     else:
-        raise RuntimeError("No path found")
+        if args.planner == "RRT":
+            G = RRT(
+                startposition,
+                endposition,
+                sphere_obstacles_margin,
+                iterations,
+                threshold,
+                rand_radius,
+                bias,
+                obstacle_bias,
+                stepsize,
+                goal,
+            )
+        elif args.planner == "RRT_s":
+            G = RRT_s(
+                startposition,
+                endposition,
+                sphere_obstacles_margin,
+                iterations,
+                threshold,
+                rand_radius,
+                bias,
+                obstacle_bias,
+                stepsize,
+                goal,
+            )
+        elif args.planner == "iRRT_s":
+            G = iRRT_s(
+                startposition,
+                endposition,
+                sphere_obstacles_margin,
+                iterations,
+                threshold,
+                rand_radius,
+                bias,
+                obstacle_bias,
+                stepsize,
+                goal,
+            )
+
+        if G.found_path:
+            target_path = dijkstra(G)
+        else:
+            raise RuntimeError("No path found")
 
     # target_path = [(0.0, 0.0, 0.0),
     #                 (-0.2650163269488669,

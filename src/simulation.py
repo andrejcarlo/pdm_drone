@@ -1,18 +1,4 @@
-"""Script demonstrating the joint use of simulation and control.
-
-The simulation is run by a `CtrlAviary` or `VisionAviary` environment.
-The control is given by the PID implementation in `DSLPIDControl`.
-
-Example
--------
-In a terminal, run as:
-
-    $ python fly.py
-
-Notes
------
-The drones move, at different altitudes, along cicular trajectories 
-in the X-Y plane, around point (0, -.3).
+"""Script to run drone simulation using an mpc controller in gym_pybullet
 
 """
 import os
@@ -35,9 +21,9 @@ from gym_pybullet_drones.control.SimplePIDControl import SimplePIDControl
 from gym_pybullet_drones.utils.Logger import Logger
 from gym_pybullet_drones.utils.utils import sync, str2bool
 
-from mpc_controller import *
-from time_parametrization import *
-from plotting import plot_translation_from_logger, plot_3d_from_logger
+from src.mpc_controller import *
+from src.time_parametrization import *
+from src.visualization_simulation import plot_translation_from_logger, plot_3d_from_logger
 
 DEFAULT_DRONES = DroneModel("cf2x")
 DEFAULT_NUM_DRONES = 1
@@ -134,7 +120,7 @@ def run(settings: SimulationSettings, target_path, sphere_obstacles):
     max_velocity = 3 # m/s
     controller_time_step = 0.5
     trajectory_time_step = controller_time_step
-    trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.5, max_acceleration=1.5)
+    trajectory = trajectory_from_path_bang_bang(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step, min_speed=0.2, max_acceleration=1.5)
     # trajectory = trajectory_from_path_const_vel(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step)
 
 
