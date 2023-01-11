@@ -68,7 +68,7 @@ if __name__ == '__main__':
         ([4.0, 9.0, 2.5], [7.0, 12.0, 6.5], 'cube'),  # O15
     ]
 
-    obstacles = map3
+    obstacles = map1
     plot_obstacle_map(obstacles,startposition, endposition, set_limits=False)
 
     # min, max, 'cube' ( y, x, z)
@@ -125,7 +125,8 @@ if __name__ == '__main__':
                     bias = bias,
                     obstacle_bias= obstacle_bias,
                     stepsize= stepsize,
-                    goal= goal)
+                    goal= goal,
+                   fix_room_size=True)
 
         end_RRT = time.time()
         RRT_time = end_RRT - start_RRT

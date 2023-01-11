@@ -149,10 +149,10 @@ def plot_obstacle_map(obstacles, start, goal, set_limits=True):
     ax.set_ylabel('$Y$', fontsize=20)
     ax.set_zlabel('$Z$', fontsize=20)
     if (set_limits):
-        ax.set_xlim3d(0, 5)
-        ax.set_ylim3d(0, 5)
+        ax.set_xlim3d(0, 22)
+        ax.set_ylim3d(0, 12)
 
-    ax.set_zlim3d(0, 5)
+    ax.set_zlim3d(0, 12)
 
     # plot start and goal
     ax.scatter(start[0],start[1],start[2],s=50, color="y")
