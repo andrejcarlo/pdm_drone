@@ -139,8 +139,8 @@ def plot_obstacle_map(obstacles):
     ax.set_ylabel('$Y$', fontsize=20)
     ax.set_zlabel('$Z$', fontsize=20)
 
-    ax.set_xlim3d(0, 22)
-    ax.set_ylim3d(0, 12)
+    ax.set_xlim3d(0, 25)
+    ax.set_ylim3d(0, 15)
     ax.set_zlim3d(0, 12)
 
 

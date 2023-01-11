@@ -14,8 +14,8 @@ from src.utils import dijkstra
 if __name__ == '__main__':
     # startposition = (-3., -2., -3.)
     # endposition = (10., 5., 5.)
-    startposition = (20., 0., 0.)
-    endposition = (1., 10., 5.)
+    endposition = (19., 0., 0.)
+    startposition = (2.5, 8.6, 7.7)
 
     # DEFINE MAPS HERE
     map0 = [
@@ -25,30 +25,59 @@ if __name__ == '__main__':
     ]
 
     map1 = [
-        #(5., 2.5, 2.5, 3, 'sphere'),
-        (7.0, 5.5, 5., 1, 'sphere'), # O3
-        (12.0, 8., 5., 2, 'sphere'), # O4
-        ([10.0, 2.0, 0.0], [4.0, 4.0, 10.0], 'cube'), # O1
-        ([18.0, 6.0, 0.0], [14.0,12.0, 10.0], 'cube'),  # O2
-        ([19.0, 14.0, 0.0], [7.0, 14.5, 10.0], 'cube'),  # O5
-
+        (7.0, 5.5, 5., 1, 'sphere'),  # O3
+        (5.0, 10., 5., 2, 'sphere'),  # O4
+        ([1.0, 2.0, 1.0], [9.0, 4.0, 9.0], 'cube'),  # O1
+        ([11.0, 6.0, 1.0], [17.0, 12.0, 9.0], 'cube'),  # O2
+        ([5.0, 14.0, 1.0], [7.5, 14.5, 9.0], 'cube'),  # O5
+        ([20.0, 0.0, 0.0], [0.0, 15.0, 0.5], 'cube'),  # bottom_plate
+        ([20.0, 0.0, 10.0], [0.0, 15.0, 10.5], 'cube'),  # top_plate
     ]
 
-    obstacles = map1
+    map2 = [
+        (7.0, 6.5, 5., 1, 'sphere'),  # O3
+        (5.0, 10., 5., 2, 'sphere'),  # O4
+        (8.5, 8.0, 8., 1.5, 'sphere'),  # O6
+        (13.5, 3.5, 3., 2, 'sphere'),  # O7
+        (18.5, 2.0, 2., 1.5, 'sphere'),  # O8
+        ([9.5, 8.5, 2.0], [11.5, 4.5, 6.5], 'cube'),  # O9
+        ([2.0, 3.0, 2.0], [8.0, 5.0, 8.0], 'cube'),  # O1
+        ([12.0, 7.0, 2.0], [16.0, 11.0, 8.0], 'cube'),  # O2
+        ([6.0, 14.0, 2.0], [8.0, 14.5, 8.0], 'cube'),  # O5
+        ([20.0, 0.0, 0.0], [0.0, 15.0, 0.5], 'cube'),  # bottom_plate
+        ([20.0, 0.0, 10.0], [0.0, 15.0, 10.5], 'cube'),  # top_plate
+    ]
+
+
+    map3 = [
+        (7.0, 6.5, 5., 1, 'sphere'),  # O3
+        (10.0, 12.5, 5., 2, 'sphere'),  # O4
+        (8.5, 8.0, 8., 1.5, 'sphere'),  # O6
+        (13.5, 3.5, 3., 2, 'sphere'),  # O7
+        (18.5, 2.0, 2., 1.5, 'sphere'),  # O8
+        ([9.5, 8.5, 2.0], [11.5, 4.5, 6.5], 'cube'),  # O9
+        ([2.0, 3.0, 2.0], [8.0, 5.0, 8.0], 'cube'),  # O1
+        ([12.0, 7.0, 2.0], [16.0, 11.0, 8.0], 'cube'),  # O2
+        ([6.0, 14.0, 2.0], [8.0, 14.5, 8.0], 'cube'),  # O5
+        ([20.0, 0.0, 0.0], [0.0, 15.0, 0.5], 'cube'),  # bottom_plate
+        ([20.0, 0.0, 10.0], [0.0, 15.0, 10.5], 'cube'),  # top_plate
+        ([0.5, 10.0, 0.5], [3.5, 14.0, 4.0], 'cube'),  # O11
+        ([15.0, 12.0, 2.0], [18.0, 14.5, 9.0], 'cube'),  # O12
+        ([9.0, 0.5, 0.5], [11.0, 4.0, 3.5], 'cube'),  # O13
+        ([17.0, 4.0, 5.5], [20.0, 7.0, 9.0], 'cube'),  # O14
+        ([4.0, 9.0, 2.5], [7.0, 12.0, 6.5], 'cube'),  # O15
+    ]
+
+    obstacles = map3
+    plot_obstacle_map(obstacles)
 
     # min, max, 'cube' ( y, x, z)
     # x, y, z, radius
 
     # RRT, RRT Star, Biased RRT*
-
-    # obstacles = [(1.,1.,1.,.5),(3.,4.,5.,1.),(4,2,3,1),(6,3,1,2),(6,1,1,2),(8,1,4,1)]
-    # obstacles = [(5,-1,-1,1.5),(5,1,-1,1.5),(5,3,-1,1.5),(5,5,-1,1.5),(5,-1,1,1.5),(5,1,1,1.5),(5,3,1,1.5),(5,5,1,1.5),(5,-1,3,1.5),(5,3.5,3,1.5),(5,0,3,1.5),(5,5,3,1.5),(5,-1,5,1.5),(5,1,5,1.5),(5,3,5,1.5),(5,5,5,1.5)] #hole
-    # obstacles = [(5,2,3,0.5),(5,2,2,0.5),(5,3,2,0.5),(5,3,3,0.5),
-    # (5,1,2.5,1),(5,4,2.5,1),(5,2.5,1,1),(5,2.5,4,1),(5,1,1,1),(5,1,4,1),(5,4,1,1),(5,4,4,1)]
-
-    iterations = 1000
-    threshold = 2.  # for marking the end position as found
-    stepsize = 1.  # stepsize of newly generated vertices
+    iterations = 2000
+    threshold = 4.  # for marking the end position as found
+    stepsize = 15.  # stepsize of newly generated vertices
 
     # some parameters for the obstacle bias attempt
     obstacle_bias = True
@@ -59,7 +88,7 @@ if __name__ == '__main__':
     goal = None
 
     # UNCOMMENT TO VIEW MAP
-    plot_obstacle_map(obstacles)
+    # plot_obstacle_map(obstacles)
 
     use_prm = False
     use_rrt = True
@@ -81,7 +110,7 @@ if __name__ == '__main__':
         else:
             print("No path found!")
             plot_graph(prm_planner.graph, obstacles, startposition, endposition, prm_time, prm_planner.found_path, visualize_all=True)
-    
+
     elif use_rrt:
 
         start_RRT = time.time() #record start time
@@ -113,5 +142,4 @@ if __name__ == '__main__':
         else:
             print(f"No path found in {iterations}")
             plot_graph(G, obstacles, startposition, endposition, RRT_time, visualize_all=True)
-        
-   
+
