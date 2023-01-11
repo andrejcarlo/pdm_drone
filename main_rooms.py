@@ -138,7 +138,7 @@ if __name__ == '__main__':
             print('The vertices of the path are:')
             print(path)
             print()
-            plot_graph(G, obstacles, startposition, endposition, RRT_time, path, dijkstra_time, visualize_all=True)
+            plot_graph(G, obstacles, startposition, endposition, RRT_time, path, dijkstra_time, visualize_all=False)
         else:
             print(f"No path found in {iterations}")
             plot_graph(G, obstacles, startposition, endposition, RRT_time, visualize_all=True)

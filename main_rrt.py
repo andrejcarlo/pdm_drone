@@ -10,7 +10,6 @@ from src.utils import dijkstra, distance
 from src.graph import Graph, Line
 from src.rrt import iRRT_s, RRT, RRT_s
 from src.visualisation import plot_graph, plot_graph_simple
-from src.prm import rrt_andrei
 
 if __name__ == '__main__':
        
