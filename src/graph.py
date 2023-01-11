@@ -17,18 +17,28 @@ class Line():
 # graph class
 class Graph:
     # initialize some metrix
-    def __init__(self, startposition, endposition):
+    def __init__(self, startposition, endposition, fix_room_size=False):
         self.startposition = startposition
         self.endposition = endposition
         self.found_path = False
+        self.fixed_room_size = fix_room_size
         # size of searchbox
-        self.searchboxsize_x = (startposition[0] - endposition[0])
-        self.searchboxsize_y = (startposition[1] - endposition[1])
-        self.searchboxsize_z = (startposition[2] - endposition[2])
-        # location of seachbox startpoint: two times size of box between start and end position
-        self.searchbegin_x = self.startposition[0] + (self.searchboxsize_x/2) 
-        self.searchbegin_y = self.startposition[1] + (self.searchboxsize_y/2) 
-        self.searchbegin_z = self.startposition[2] + (self.searchboxsize_z/2) 
+        if fix_room_size:
+            self.searchboxsize_x = 10. #(startposition[0] - endposition[0])
+            self.searchboxsize_y = 10. #(startposition[1] - endposition[1])
+            self.searchboxsize_z = 10. #(startposition[2] - endposition[2])
+            # location of seachbox startpoint: two times size of box between start and end position
+            self.searchbegin_x = -2.5  
+            self.searchbegin_y = -5.
+            self.searchbegin_z = -5.
+        else:
+            self.searchboxsize_x = (startposition[0] - endposition[0])
+            self.searchboxsize_y = (startposition[1] - endposition[1])
+            self.searchboxsize_z = (startposition[2] - endposition[2])
+            # location of seachbox startpoint: two times size of box between start and end position
+            self.searchbegin_x = self.startposition[0] + (self.searchboxsize_x/2) 
+            self.searchbegin_y = self.startposition[1] + (self.searchboxsize_y/2) 
+            self.searchbegin_z = self.startposition[2] + (self.searchboxsize_z/2) 
         
         self.vertices = [startposition]
         self.edges = [] # contains the indices of the vertices
@@ -43,10 +53,12 @@ class Graph:
             x = random()
             y = random()
             z = random()
+
+            fix_room_factor = (1 if self.fixed_room_size else -1)
             # convert to value within searchbox
-            posx = self.searchbegin_x - x*self.searchboxsize_x*2
-            posy = self.searchbegin_y - y*self.searchboxsize_y*2
-            posz = self.searchbegin_z - z*self.searchboxsize_z*2
+            posx = self.searchbegin_x + fix_room_factor*x*self.searchboxsize_x*2
+            posy = self.searchbegin_y + fix_room_factor*y*self.searchboxsize_y*2
+            posz = self.searchbegin_z + fix_room_factor*z*self.searchboxsize_z*2
             
         else:
             select = random()
@@ -56,17 +68,18 @@ class Graph:
                 y = random()
                 z = random()
                 # convert to value within searchbox
-                posx = self.searchbegin_x - x*self.searchboxsize_x*2
-                posy = self.searchbegin_y - y*self.searchboxsize_y*2
-                posz = self.searchbegin_z - z*self.searchboxsize_z*2
+                posx = self.searchbegin_x + fix_room_factor*x*self.searchboxsize_x*2
+                posy = self.searchbegin_y + fix_room_factor*y*self.searchboxsize_y*2
+                posz = self.searchbegin_z + fix_room_factor*z*self.searchboxsize_z*2
             else:
                 rand_obs = randrange(0,len(obstacles))
-                direction = np.array((uniform(-1,1), uniform(-1,1), uniform(-1,1)))
-                length = np.linalg.norm(direction)
-                rand_pos = (direction/length)*(obstacles[rand_obs][3] + uniform(0.,rand_radius))
-                posx = obstacles[rand_obs][0]+ rand_pos[0]
-                posy = obstacles[rand_obs][1]+ rand_pos[1]
-                posz = obstacles[rand_obs][2]+ rand_pos[2]
+                if obstacles[rand_obs][-1] == 'sphere':
+                    direction = np.array((uniform(-1,1), uniform(-1,1), uniform(-1,1)))
+                    length = np.linalg.norm(direction)
+                    rand_pos = (direction/length)*(obstacles[rand_obs][3] + uniform(0.,rand_radius))
+                    posx = obstacles[rand_obs][0]+ rand_pos[0]
+                    posy = obstacles[rand_obs][1]+ rand_pos[1]
+                    posz = obstacles[rand_obs][2]+ rand_pos[2]
                 
         return posx, posy, posz
 

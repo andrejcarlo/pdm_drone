@@ -1,5 +1,5 @@
 from simulation import *
-from rrt import RRT, RRT_s, iRRT_s, dijkstra
+from src.rrt import RRT, RRT_s, iRRT_s, dijkstra
 
 if __name__ == "__main__":
     # Define and parse (optional) arguments for the script

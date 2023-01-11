@@ -4,8 +4,8 @@ from src.utils import distance, nearest_node, reshape, dijkstra, in_obstacle, tr
 import numpy as np
 
 # RRT algorithm
-def RRT(startposition, endposition, obstacles, iterations, threshold, rand_radius, bias, obstacle_bias, stepsize, goal):
-    RRT_Graph = Graph(startposition, endposition)
+def RRT(startposition, endposition, obstacles, iterations, threshold, rand_radius, bias, obstacle_bias, stepsize, goal, fix_room_size=False):
+    RRT_Graph = Graph(startposition, endposition, fix_room_size=fix_room_size)
     optimal = distance(startposition,endposition)
     if goal is not None: iterations = 10000
     for i in range(iterations):
@@ -42,8 +42,8 @@ def RRT(startposition, endposition, obstacles, iterations, threshold, rand_radiu
     return RRT_Graph
 
 # RRT* algorithm
-def RRT_s(startposition, endposition, obstacles, iterations, threshold, rand_radius, bias, obstacle_bias, stepsize, goal):
-    RRT_Graph = Graph(startposition, endposition)
+def RRT_s(startposition, endposition, obstacles, iterations, threshold, rand_radius, bias, obstacle_bias, stepsize, goal,fix_room_size=False):
+    RRT_Graph = Graph(startposition, endposition, fix_room_size=fix_room_size)
     gamma = 10*stepsize*pow((1+1/3),(1/3))
     optimal = distance(startposition,endposition)
     if goal is not None: iterations = 5000
@@ -107,8 +107,8 @@ def RRT_s(startposition, endposition, obstacles, iterations, threshold, rand_rad
     return RRT_Graph
 
 # Informed RRT* algorithm
-def iRRT_s(startposition, endposition, obstacles, iterations, threshold, rand_radius, bias, obstacle_bias, stepsize, goal):
-    RRT_Graph = Graph(startposition, endposition)
+def iRRT_s(startposition, endposition, obstacles, iterations, threshold, rand_radius, bias, obstacle_bias, stepsize, goal,fix_room_size=False):
+    RRT_Graph = Graph(startposition, endposition, fix_room_size=fix_room_size)
     gamma = 10*stepsize*pow((1+1/3),(1/3))
     optimal = distance(startposition,endposition)
     if goal is not None: iterations = 5000

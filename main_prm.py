@@ -7,17 +7,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from src.prm import PRM
-from src.visualisation import plot_graph
+from src.visualisation import plot_graph, plot_obstacle_map
 
 if __name__ == '__main__':
        
     startposition = (0.,0.,0.)
     endposition = (10.,5.,5.)
     #obstacles = []
-    # obstacles = [(5.,2.5,2.5,3)]
+    obstacles = [(5.,2.5,2.5,3,'sphere')]
     #obstacles = [(1.,1.,1.,.5),(3.,4.,5.,1.),(4,2,3,1),(6,3,1,2),(6,1,1,2),(8,1,4,1)]
     #obstacles = [(5,-1,-1,1.5),(5,1,-1,1.5),(5,3,-1,1.5),(5,5,-1,1.5),(5,-1,1,1.5),(5,1,1,1.5),(5,3,1,1.5),(5,5,1,1.5),(5,-1,3,1.5),(5,3.5,3,1.5),(5,0,3,1.5),(5,5,3,1.5),(5,-1,5,1.5),(5,1,5,1.5),(5,3,5,1.5),(5,5,5,1.5)] #hole
-    obstacles = [(5,2,3,0.5),(5,2,2,0.5),(5,3,2,0.5),(5,3,3,0.5),(5,1,2.5,1),(5,4,2.5,1),(5,2.5,1,1),(5,2.5,4,1),(5,1,1,1),(5,1,4,1),(5,4,1,1),(5,4,4,1)]
+    # obstacles = [(5,2,3,0.5),(5,2,2,0.5),(5,3,2,0.5),(5,3,3,0.5),(5,1,2.5,1),(5,4,2.5,1),(5,2.5,1,1),(5,2.5,4,1),(5,1,1,1),(5,1,4,1),(5,4,1,1),(5,4,4,1)]
     iterations = 1000
     threshold = 2. #for marking the end position as found
     stepsize = 1. # stepsize of newly generated vertices
@@ -29,6 +29,8 @@ if __name__ == '__main__':
     
     #path length/optimal length
     goal = None
+
+    plot_obstacle_map()
     
     start_prm = time.time() #record start time
     prm_planner = PRM(200, obstacles= obstacles, start= startposition, destination = endposition, goal=1.34)

@@ -58,19 +58,58 @@ def intersection(obstacle, line):
         return False
     return True
 
+# adapted from intersectCube in https://github.com/evanw/webgl-path-tracing/blob/master/webgl-path-tracing.js
+# compute the near and far intersections of the cube (stored in the x and y components) using the slab method
+# no intersection means vec.x > vec.y (really tNear > tFar)
+def intersectAABB(rayOrigin, rayDir, cubeMin, cubeMax):
+    """
+    rayOrigin, rayDir, cubeMin, cubeMax: vec3
+    """
+    tMin = (cubeMin - rayOrigin) / rayDir; # vec3
+    tMax = (cubeMax - rayOrigin) / rayDir; # vec3
+    t1 = np.minimum(tMin, tMax); # vec3
+    t2 = np.maximum(tMin, tMax); # vec3
+    tNear = max(max(t1[0], t1[1]), t1[2]); # float
+    tFar = min(min(t2[0], t2[1]), t2[2]);  # float
+
+    if tNear < tFar:
+        return True
+        
+    return False
+
+def pointInAABB(vecPoint, cubeMin, cubeMax):
+
+    # Check if the point is less than max and greater than min
+    if(vecPoint[0] > cubeMin[0] and vecPoint[0] < cubeMax[0] and 
+        vecPoint[1] > cubeMin[1] and vecPoint[1] < cubeMax[1] and 
+        vecPoint[2] > cubeMin[2] and vecPoint[2] < cubeMax[2]):
+
+        return True
+
+    # If not, then return false
+    return False
+
 
 # determine whether a vertex (point) is in one of the obstacles
 def in_obstacle(obstacles, vertex):
     for obstacle in obstacles:
-        if distance(obstacle[:3],vertex) < obstacle[3]:
-            return True
+        if obstacle[-1] == 'sphere':
+            if distance(obstacle[:3],vertex) < obstacle[3]:
+                return True
+        elif obstacle[-1] == 'cube':
+            return pointInAABB(vertex, np.array(obstacle[0]), np.array(obstacle[1]))
     return False
 
 # determine whether a edge (line) goes through one of the obstacles
 def trough_obstacle(obstacles,line):
     for obstacle in obstacles:
-        if intersection(obstacle, line):
-            return True
+        if obstacle[-1] == 'sphere':
+            return intersection(obstacle, line)
+        elif obstacle[-1] == 'cube':
+            line_intersects_cube = intersectAABB(line.p0, line.direction, np.array(obstacle[0]), np.array(obstacle[1]))
+            if not line_intersects_cube:
+                print("Not intersecting Cube")
+            return line_intersects_cube
     return False
 
 #find the nearest node
