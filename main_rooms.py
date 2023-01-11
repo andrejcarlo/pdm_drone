@@ -55,7 +55,7 @@ if __name__ == '__main__':
     goal = None
 
     # UNCOMMENT TO VIEW MAP
-    plot_obstacle_map(obstacles)
+    # plot_obstacle_map(obstacles)
 
     # UNCOMMENT TO RUN PLANNER
     start_prm = time.time() #record start time
@@ -68,7 +68,7 @@ if __name__ == '__main__':
         print('The vertices of the path are:')
         print(prm_planner.found_path)
         print()
-        plot_graph(prm_planner.graph, obstacles, startposition, endposition, prm_time, prm_planner.found_path)
+        plot_graph(prm_planner.graph, obstacles, startposition, endposition, prm_time, prm_planner.found_path, visualize_all=True)
     else:
         print("No path found!")
-        plot_graph(prm_planner.graph, obstacles, startposition, endposition, prm_time, prm_planner.found_path)
+        plot_graph(prm_planner.graph, obstacles, startposition, endposition, prm_time, prm_planner.found_path, visualize_all=True)

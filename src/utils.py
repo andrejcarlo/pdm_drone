@@ -104,12 +104,12 @@ def in_obstacle(obstacles, vertex):
 def trough_obstacle(obstacles,line):
     for obstacle in obstacles:
         if obstacle[-1] == 'sphere':
-            return intersection(obstacle, line)
+            if intersection(obstacle, line):
+                return True
         elif obstacle[-1] == 'cube':
             line_intersects_cube = intersectAABB(line.p0, line.direction, np.array(obstacle[0]), np.array(obstacle[1]))
-            if not line_intersects_cube:
-                print("Not intersecting Cube")
-            return line_intersects_cube
+            if line_intersects_cube:
+                return True
     return False
 
 #find the nearest node

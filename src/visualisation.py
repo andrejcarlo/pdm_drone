@@ -64,21 +64,9 @@ def plot_graph(Graph, obstacles, startposition, endposition, RRT_time, found_pat
     vex_y = [y for x, y, z in Graph.vertices]
     vex_z = [z for x, y, z in Graph.vertices]
     
-    for obstacle in range(len(obstacles)):
-        if obstacles[obstacle][-1] == 'sphere':
-            u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
-            x = obstacles[obstacle][0]+obstacles[obstacle][3]*np.cos(u)*np.sin(v)
-            y = obstacles[obstacle][1]+obstacles[obstacle][3]*np.sin(u)*np.sin(v)
-            z = obstacles[obstacle][2]+obstacles[obstacle][3]*np.cos(v)
-            ax.plot_surface(x, y, z, color="r", alpha=0.25)
-        elif obstacles[obstacle][-1] == 'cube':
-            sizes = np.array(obstacles[obstacle][1]) - np.array(obstacles[obstacle][0])
-            data = cuboid_data(tuple(obstacles[obstacle][0]), sizes)
-            pc = Poly3DCollection(data, facecolors='k', linewidths=1, edgecolors='k', alpha=.25)
-
-            ax.add_collection3d(pc)
+    plot_obstacles(obstacles, ax)
     if visualize_all:
-        ax.scatter(vex_x,vex_y,vex_z, s=10, color="b")
+        ax.scatter(vex_x,vex_y,vex_z, s=10, color="b", zorder=2)
 
     ax.scatter(Graph.startposition[0],Graph.startposition[1],Graph.startposition[2],s=50, color="y")
     ax.scatter(Graph.endposition[0],Graph.endposition[1],Graph.endposition[2],s=50, color="y")
@@ -88,7 +76,7 @@ def plot_graph(Graph, obstacles, startposition, endposition, RRT_time, found_pat
         y = np.array([Graph.vertices[edge[0]][1],Graph.vertices[edge[1]][1]])
         z = np.array([Graph.vertices[edge[0]][2],Graph.vertices[edge[1]][2]])
         if visualize_all:
-            ax.plot3D(x, y, z, color="b",linewidth=0.3)
+            ax.plot3D(x, y, z, color="g",linewidth=0.4, zorder=2)
     
     if found_path is not None:
         length = 0.
@@ -97,7 +85,7 @@ def plot_graph(Graph, obstacles, startposition, endposition, RRT_time, found_pat
             y = np.array([found_path[path][1],found_path[path+1][1]])
             z = np.array([found_path[path][2],found_path[path+1][2]])
             length = length + distance((found_path[path][0],found_path[path][1],found_path[path][2]),(found_path[path+1][0],found_path[path+1][1],found_path[path+1][2]))
-            ax.plot3D(x, y, z, color="r",linewidth=3, alpha=0.9)
+            ax.plot3D(x, y, z, color="r",linewidth=3, alpha=0.9, zorder=3)
         print('A path was found, with length:', round(length,2))
         print('The direct path is of length:', round(distance(startposition,endposition),2))
         print('The RRT generation took: '+str(round(RRT_time,2))+ 's')
@@ -111,25 +99,39 @@ def plot_graph(Graph, obstacles, startposition, endposition, RRT_time, found_pat
     #ax.set_aspect('equal', adjustable='box')
     plt.show()
 
-
-def plot_obstacle_map(obstacles):
-
-    fig = plt.figure(figsize=(10, 10))
-    ax = plt.axes(projection ='3d')
-
+def plot_obstacles_surface(obstacles, ax):
     for obstacle in range(len(obstacles)):
         if obstacles[obstacle][-1] == 'sphere':
             u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
             x = obstacles[obstacle][0]+obstacles[obstacle][3]*np.cos(u)*np.sin(v)
             y = obstacles[obstacle][1]+obstacles[obstacle][3]*np.sin(u)*np.sin(v)
             z = obstacles[obstacle][2]+obstacles[obstacle][3]*np.cos(v)
-            ax.plot_surface(x, y, z, color="r")
+            ax.plot_surface(x, y, z, color="r", alpha=0.25,zorder=1)
+        elif obstacles[obstacle][-1] == 'cube':
+            sizes = np.array(obstacles[obstacle][1]) - np.array(obstacles[obstacle][0])
+            X,Y,Z = cuboid_data_surface(tuple(obstacles[obstacle][0]), sizes)
+            ax.plot_surface(X, Y, Z, color='b', alpha=0.8, zorder=5)
+
+def plot_obstacles(obstacles, ax):
+    for obstacle in range(len(obstacles)):
+        if obstacles[obstacle][-1] == 'sphere':
+            u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
+            x = obstacles[obstacle][0]+obstacles[obstacle][3]*np.cos(u)*np.sin(v)
+            y = obstacles[obstacle][1]+obstacles[obstacle][3]*np.sin(u)*np.sin(v)
+            z = obstacles[obstacle][2]+obstacles[obstacle][3]*np.cos(v)
+            ax.plot_surface(x, y, z, color="r", alpha=0.5, zorder=5)
         elif obstacles[obstacle][-1] == 'cube':
             sizes = np.array(obstacles[obstacle][1]) - np.array(obstacles[obstacle][0])
             data = cuboid_data(tuple(obstacles[obstacle][0]), sizes)
-            pc = Poly3DCollection(data, facecolors='k', linewidths=1, edgecolors='k', alpha=.25)
-
+            pc = Poly3DCollection(data, facecolors='k', linewidths=1, edgecolors='k',alpha=0.5, zorder=5)
             ax.add_collection3d(pc)
+
+def plot_obstacle_map(obstacles):
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = plt.axes(projection ='3d')
+
+    plot_obstacles(obstacles, ax)
 
     plt.show()
 
@@ -145,3 +147,25 @@ def cuboid_data(o, size=(1,1,1)):
         X[:,:,i] *= size[i]
     X += np.array(o)
     return X
+
+def cuboid_data_surface(pos, size=(1,1,1)):
+    # code taken from
+    # https://stackoverflow.com/a/35978146/4124317
+    # suppose axis direction: x: to left; y: to inside; z: to upper
+    # get the (left, outside, bottom) point
+    o = [a - b / 2 for a, b in zip(pos, size)]
+    # get the length, width, and height
+    l, w, h = size
+    x = [[o[0], o[0] + l, o[0] + l, o[0], o[0]],  
+         [o[0], o[0] + l, o[0] + l, o[0], o[0]],  
+         [o[0], o[0] + l, o[0] + l, o[0], o[0]],  
+         [o[0], o[0] + l, o[0] + l, o[0], o[0]]]  
+    y = [[o[1], o[1], o[1] + w, o[1] + w, o[1]],  
+         [o[1], o[1], o[1] + w, o[1] + w, o[1]],  
+         [o[1], o[1], o[1], o[1], o[1]],          
+         [o[1] + w, o[1] + w, o[1] + w, o[1] + w, o[1] + w]]   
+    z = [[o[2], o[2], o[2], o[2], o[2]],                       
+         [o[2] + h, o[2] + h, o[2] + h, o[2] + h, o[2] + h],   
+         [o[2], o[2], o[2] + h, o[2] + h, o[2]],               
+         [o[2], o[2], o[2] + h, o[2] + h, o[2]]]               
+    return np.array(x), np.array(y), np.array(z)
