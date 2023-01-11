@@ -14,8 +14,8 @@ from src.utils import dijkstra
 if __name__ == '__main__':
     # startposition = (-3., -2., -3.)
     # endposition = (10., 5., 5.)
-    startposition = (20., 0., 0.)
-    endposition = (1., 10., 5.)
+    endposition = (19., 0., 0.)
+    startposition = (2.5, 8.6, 7.7)
 
     startposition = (10., 10., 3.)
     endposition = (55., 55., 3.)
@@ -28,13 +28,13 @@ if __name__ == '__main__':
     ]
 
     map1 = [
-        #(5., 2.5, 2.5, 3, 'sphere'),
-        (7.0, 5.5, 5., 1, 'sphere'), # O3
-        (12.0, 8., 5., 2, 'sphere'), # O4
-        ([10.0, 2.0, 0.0], [4.0, 4.0, 10.0], 'cube'), # O1
-        ([18.0, 6.0, 0.0], [14.0,12.0, 10.0], 'cube'),  # O2
-        ([19.0, 14.0, 0.0], [7.0, 14.5, 10.0], 'cube'),  # O5
-
+        (7.0, 5.5, 5., 1, 'sphere'),  # O3
+        (5.0, 10., 5., 2, 'sphere'),  # O4
+        ([1.0, 2.0, 1.0], [9.0, 4.0, 9.0], 'cube'),  # O1
+        ([11.0, 6.0, 1.0], [17.0, 12.0, 9.0], 'cube'),  # O2
+        ([5.0, 14.0, 1.0], [7.5, 14.5, 9.0], 'cube'),  # O5
+        ([20.0, 0.0, 0.0], [0.0, 15.0, 0.5], 'cube'),  # bottom_plate
+        ([20.0, 0.0, 10.0], [0.0, 15.0, 10.5], 'cube'),  # top_plate
     ]
 
     basic_cube = ([0.0, 0.0, 0.0], [5.0, 5.0, 5.0], 'cube')
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     goal = None
 
     # UNCOMMENT TO VIEW MAP
-    plot_obstacle_map(obstacles, startposition, endposition, set_limits=False)
+    plot_obstacle_map(obstacles, startposition, endposition, set_limits=True)
 
     use_prm = False
     use_rrt = True
@@ -87,7 +87,7 @@ if __name__ == '__main__':
         else:
             print("No path found!")
             plot_graph(prm_planner.graph, obstacles, startposition, endposition, prm_time, prm_planner.found_path, visualize_all=True)
-    
+
     elif use_rrt:
 
         start_RRT = time.time() #record start time
@@ -120,5 +120,4 @@ if __name__ == '__main__':
         else:
             print(f"No path found in {iterations}")
             plot_graph(G, obstacles, startposition, endposition, RRT_time, visualize_all=True)
-        
-   
+

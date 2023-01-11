@@ -29,6 +29,8 @@ def RRT(startposition, endposition, obstacles, iterations, threshold, rand_radiu
         
         if stepsize is not None:
             randpos = reshape(randpos, near_vex, stepsize)
+            if in_obstacle(obstacles, randpos):
+                continue 
         
         new_idx = RRT_Graph.add_vertex(randpos)
         dist = distance(near_vex,randpos)
@@ -68,6 +70,8 @@ def RRT_s(startposition, endposition, obstacles, iterations, threshold, rand_rad
         
         if stepsize is not None:
             randpos = reshape(randpos, near_vex, stepsize)
+            if in_obstacle(obstacles, randpos):
+                continue 
         
         new_idx = RRT_Graph.add_vertex(randpos)
         dist = distance(near_vex,randpos)
@@ -139,6 +143,8 @@ def iRRT_s(startposition, endposition, obstacles, iterations, threshold, rand_ra
         
         if stepsize is not None:
             randpos = reshape(randpos, near_vex, stepsize)
+            if in_obstacle(obstacles, randpos):
+                continue 
         
         new_idx = RRT_Graph.add_vertex(randpos)
         dist = distance(near_vex,randpos)

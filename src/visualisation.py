@@ -66,7 +66,11 @@ def plot_graph(Graph, obstacles, startposition, endposition, RRT_time, found_pat
     
     plot_obstacles(obstacles, ax)
     if visualize_all:
-        ax.scatter(vex_x,vex_y,vex_z, s=10, color="b", zorder=2)
+        ax.scatter(vex_x,vex_y,vex_z, s=50, color="b", zorder=2)
+        # for i, j, k in zip(vex_x, vex_y, vex_z):
+        #     ax.text3D(i + 0.1, j+0.1, k +0.1, '({}, {}, {})'.format(round(i,2), round(j,2), round(k,2)))
+
+        
 
     ax.scatter(Graph.startposition[0],Graph.startposition[1],Graph.startposition[2],s=50, color="y")
     ax.scatter(Graph.endposition[0],Graph.endposition[1],Graph.endposition[2],s=50, color="y")
@@ -76,7 +80,8 @@ def plot_graph(Graph, obstacles, startposition, endposition, RRT_time, found_pat
         y = np.array([Graph.vertices[edge[0]][1],Graph.vertices[edge[1]][1]])
         z = np.array([Graph.vertices[edge[0]][2],Graph.vertices[edge[1]][2]])
         if visualize_all:
-            ax.plot3D(x, y, z, color="g",linewidth=0.4, zorder=2)
+            ax.plot3D(x, y, z, color="g",linewidth=1.0, zorder=2)
+
     
     if found_path is not None:
         length = 0.
@@ -100,6 +105,10 @@ def plot_graph(Graph, obstacles, startposition, endposition, RRT_time, found_pat
     ax.set_xlabel('$X$', fontsize=20)
     ax.set_ylabel('$Y$', fontsize=20)
     ax.set_zlabel('$Z$', fontsize=20)
+    # ax.set_xlim3d(0, 20)
+    # ax.set_ylim3d(0, 10)
+
+    # ax.set_zlim3d(0, 10)
     # ax.can_zoom()
     #ax.set_aspect('equal', adjustable='box')
     plt.show()
@@ -140,10 +149,10 @@ def plot_obstacle_map(obstacles, start, goal, set_limits=True):
     ax.set_ylabel('$Y$', fontsize=20)
     ax.set_zlabel('$Z$', fontsize=20)
     if (set_limits):
-        ax.set_xlim3d(0, 22)
-        ax.set_ylim3d(0, 12)
+        ax.set_xlim3d(0, 5)
+        ax.set_ylim3d(0, 5)
 
-    ax.set_zlim3d(0, 12)
+    ax.set_zlim3d(0, 5)
 
     # plot start and goal
     ax.scatter(start[0],start[1],start[2],s=50, color="y")

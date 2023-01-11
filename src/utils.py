@@ -72,17 +72,18 @@ def intersectAABB(rayOrigin, rayDir, rayEnd, cubeMin, cubeMax):
     tNear = max(max(t1[0], t1[1]), t1[2]); # float
     tFar = min(min(t2[0], t2[1]), t2[2]);  # float
 
-    if tNear < tFar and not distance(t1,t2) > distance(rayOrigin, rayEnd):
-        return True
+    # if tNear < tFar and not ((distance(t1,rayOrigin) > distance(rayOrigin, rayEnd)) or (distance(t2,rayOrigin) > distance(rayOrigin, rayEnd))):
+    if tNear < tFar:
+      return True
         
     return False
 
 def pointInAABB(vecPoint, cubeMin, cubeMax):
 
     # Check if the point is less than max and greater than min
-    if(vecPoint[0] > cubeMin[0] and vecPoint[0] < cubeMax[0] and 
-        vecPoint[1] > cubeMin[1] and vecPoint[1] < cubeMax[1] and 
-        vecPoint[2] > cubeMin[2] and vecPoint[2] < cubeMax[2]):
+    if(vecPoint[0] >= cubeMin[0] and vecPoint[0] <= cubeMax[0] and 
+        vecPoint[1] >= cubeMin[1] and vecPoint[1] <= cubeMax[1] and 
+        vecPoint[2] >= cubeMin[2] and vecPoint[2] <= cubeMax[2]):
 
         return True
 
@@ -97,7 +98,8 @@ def in_obstacle(obstacles, vertex):
             if distance(obstacle[:3],vertex) < obstacle[3]:
                 return True
         elif obstacle[-1] == 'cube':
-            return pointInAABB(vertex, np.array(obstacle[0]), np.array(obstacle[1]))
+            if pointInAABB(vertex, np.array(obstacle[0]), np.array(obstacle[1])):
+                return True
     return False
 
 # determine whether a edge (line) goes through one of the obstacles
@@ -135,6 +137,7 @@ def reshape(randpos, near_vex, stepsize):
     direction = (direction / length) * min (stepsize, length) # find whether stepsize or length is smallest
 
     shortend_vertex = (near_vex[0]+direction[0], near_vex[1]+direction[1], near_vex[2]+direction[2]) # create a shorter line
+    
     return shortend_vertex
 
 def average(lst):

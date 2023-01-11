@@ -17,20 +17,20 @@ class Line():
 # graph class
 class Graph:
     # initialize some metrix
-    def __init__(self, startposition, endposition, fix_room_size=False):
+    def __init__(self, startposition, endposition, fix_room_size=True):
         self.startposition = startposition
         self.endposition = endposition
         self.found_path = False
         self.fixed_room_size = fix_room_size
         # size of searchbox
         if fix_room_size:
-            self.searchboxsize_x = 10. #(startposition[0] - endposition[0])
+            self.searchboxsize_x = 20. #(startposition[0] - endposition[0])
             self.searchboxsize_y = 10. #(startposition[1] - endposition[1])
             self.searchboxsize_z = 10. #(startposition[2] - endposition[2])
             # location of seachbox startpoint: two times size of box between start and end position
-            self.searchbegin_x = -2.5  
-            self.searchbegin_y = -5.
-            self.searchbegin_z = -5.
+            self.searchbegin_x = 0.
+            self.searchbegin_y = 0.
+            self.searchbegin_z = 0.
         else:
             self.searchboxsize_x = (startposition[0] - endposition[0])
             self.searchboxsize_y = (startposition[1] - endposition[1])
@@ -87,7 +87,7 @@ class Graph:
                     center = np.median(np.array([obs[0], obs[1]]), axis=0)
                     direction = np.array((uniform(-1,1), uniform(-1,1), uniform(-1,1)))
                     length = np.linalg.norm(direction)
-                    dimensions_cube = (np.array(obs[1]) - np.array(obs[0])) + uniform(0.,rand_radius)
+                    dimensions_cube = (np.array(obs[1]) - np.array(obs[0])) + uniform(0.1,rand_radius)
                     # center base_point, pick a direction, mulitply with width/2, height/2, depth/2 and add offset rand_radius
                     rand_pos = center + np.multiply((direction/length),dimensions_cube/2)
                     posx = rand_pos[0]
