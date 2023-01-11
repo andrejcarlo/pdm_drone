@@ -48,13 +48,12 @@ class Graph:
         
     # creating a random position within search frame
     def randpos(self, obstacles = None, rand_radius = None, bias = None, obstacle_bias = False) -> tuple:
+        fix_room_factor = (1 if self.fixed_room_size else -1)
         if obstacle_bias == False:
             # create random values between 0 and 1
             x = random()
             y = random()
             z = random()
-
-            fix_room_factor = (1 if self.fixed_room_size else -1)
             # convert to value within searchbox
             posx = self.searchbegin_x + fix_room_factor*x*self.searchboxsize_x*2
             posy = self.searchbegin_y + fix_room_factor*y*self.searchboxsize_y*2
@@ -73,14 +72,27 @@ class Graph:
                 posz = self.searchbegin_z + fix_room_factor*z*self.searchboxsize_z*2
             else:
                 rand_obs = randrange(0,len(obstacles))
+                direction = np.array((uniform(-1,1), uniform(-1,1), uniform(-1,1)))
+                length = np.linalg.norm(direction)
                 if obstacles[rand_obs][-1] == 'sphere':
-                    direction = np.array((uniform(-1,1), uniform(-1,1), uniform(-1,1)))
-                    length = np.linalg.norm(direction)
                     rand_pos = (direction/length)*(obstacles[rand_obs][3] + uniform(0.,rand_radius))
                     posx = obstacles[rand_obs][0]+ rand_pos[0]
                     posy = obstacles[rand_obs][1]+ rand_pos[1]
                     posz = obstacles[rand_obs][2]+ rand_pos[2]
-                
+                if obstacles[rand_obs][-1] == 'cube':
+                    # resample around cube 
+                    # get center of cube and sample either in x,y,z based on cube width, height, depth
+                    obs = obstacles[rand_obs]
+                    center = np.median(np.array([obs[0], obs[1]]), axis=0)
+                    direction = np.array((uniform(-1,1), uniform(-1,1), uniform(-1,1)))
+                    length = np.linalg.norm(direction)
+                    dimensions_cube = np.array(obs[1]) - np.array(obs[0])
+                    # center base_point, pick a direction, mulitply with width/2, height/2, depth/2 and add offset rand_radius
+                    rand_pos = center + np.multiply((direction/length),dimensions_cube/2) + uniform(0.,rand_radius)
+                    posx = rand_pos[0]
+                    posy = rand_pos[1]
+                    posz = rand_pos[2]
+                    
         return posx, posy, posz
 
     def add_vertex(self, vertex):

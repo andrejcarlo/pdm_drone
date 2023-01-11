@@ -34,18 +34,18 @@ if __name__ == '__main__':
     goal = None
     
     start_RRT = time.time() #record start time
-    G = rrt_andrei(startposition, endposition, obstacles, iterations, threshold, rand_radius, bias, obstacle_bias, stepsize, goal)
+    # G = rrt_andrei(startposition, endposition, obstacles, iterations, threshold, rand_radius, bias, obstacle_bias, stepsize, goal)
     #G = RRT_s(startposition, endposition, obstacles, iterations, threshold, rand_radius, bias, obstacle_bias, stepsize, goal)
-    # G = iRRT_s(startposition= startposition,
-    #             endposition= endposition,
-    #             obstacles= obstacles,
-    #             iterations= iterations,
-    #             threshold= threshold,
-    #             rand_radius= rand_radius,
-    #             bias = bias,
-    #             obstacle_bias= obstacle_bias,
-    #             stepsize= stepsize,
-    #             goal= goal)
+    G = iRRT_s(startposition= startposition,
+                endposition= endposition,
+                obstacles= obstacles,
+                iterations= iterations,
+                threshold= threshold,
+                rand_radius= rand_radius,
+                bias = bias,
+                obstacle_bias= obstacle_bias,
+                stepsize= stepsize,
+                goal= goal)
 
     end_RRT = time.time()
     RRT_time = end_RRT - start_RRT
