@@ -8,6 +8,8 @@ import numpy as np
 
 from src.prm import PRM
 from src.visualisation import plot_graph, plot_obstacle_map
+from src.rrt import iRRT_s
+from src.utils import dijkstra
 
 if __name__ == '__main__':
     startposition = (-3., -2., -3.)
@@ -57,18 +59,57 @@ if __name__ == '__main__':
     # UNCOMMENT TO VIEW MAP
     # plot_obstacle_map(obstacles)
 
-    # UNCOMMENT TO RUN PLANNER
-    start_prm = time.time() #record start time
-    prm_planner = PRM(200, obstacles= obstacles, start= startposition, destination = endposition)
-    prm_planner.runPRM()
-    prm_time = time.time() - start_prm
+    use_prm = False
+    use_rrt = True
 
-    if prm_planner.solutionFound:
-        print("Found a path!")
-        print('The vertices of the path are:')
-        print(prm_planner.found_path)
-        print()
-        plot_graph(prm_planner.graph, obstacles, startposition, endposition, prm_time, prm_planner.found_path, visualize_all=True)
-    else:
-        print("No path found!")
-        plot_graph(prm_planner.graph, obstacles, startposition, endposition, prm_time, prm_planner.found_path, visualize_all=True)
+    if use_prm:
+
+        # UNCOMMENT TO RUN PLANNER
+        start_prm = time.time() #record start time
+        prm_planner = PRM(200, obstacles= obstacles, start= startposition, destination = endposition)
+        prm_planner.runPRM()
+        prm_time = time.time() - start_prm
+
+        if prm_planner.solutionFound:
+            print("Found a path!")
+            print('The vertices of the path are:')
+            print(prm_planner.found_path)
+            print()
+            plot_graph(prm_planner.graph, obstacles, startposition, endposition, prm_time, prm_planner.found_path, visualize_all=True)
+        else:
+            print("No path found!")
+            plot_graph(prm_planner.graph, obstacles, startposition, endposition, prm_time, prm_planner.found_path, visualize_all=True)
+    
+    elif use_rrt:
+
+        start_RRT = time.time() #record start time
+        # G = rrt_andrei(startposition, endposition, obstacles, iterations, threshold, rand_radius, bias, obstacle_bias, stepsize, goal)
+        #G = RRT_s(startposition, endposition, obstacles, iterations, threshold, rand_radius, bias, obstacle_bias, stepsize, goal)
+        G = iRRT_s(startposition= startposition,
+                    endposition= endposition,
+                    obstacles= obstacles,
+                    iterations= iterations,
+                    threshold= threshold,
+                    rand_radius= rand_radius,
+                    bias = bias,
+                    obstacle_bias= obstacle_bias,
+                    stepsize= stepsize,
+                    goal= goal)
+
+        end_RRT = time.time()
+        RRT_time = end_RRT - start_RRT
+        if G.found_path:
+            start_dijkstra = time.time()
+            path = dijkstra(G)
+            end_dijkstra = time.time()
+            dijkstra_time = end_dijkstra - start_dijkstra
+            print("Found a path!")
+            print('The vertices of the path are:')
+            print(path)
+            print()
+            plot_graph(G, obstacles, startposition, endposition, RRT_time, path, dijkstra_time, visualize_all=True)
+        else:
+            print(f"No path found in {iterations}")
+            plot_graph(G, obstacles, startposition, endposition, RRT_time, visualize_all=True)
+        
+   
