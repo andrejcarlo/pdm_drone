@@ -10,8 +10,10 @@ from src.prm import PRM
 from src.visualisation import plot_graph, plot_obstacle_map
 
 if __name__ == '__main__':
-    startposition = (-3., -2., -3.)
-    endposition = (10., 5., 5.)
+    # startposition = (-3., -2., -3.)
+    # endposition = (10., 5., 5.)
+    startposition = (20., 0., 0.)
+    endposition = (1., 10., 5.)
 
     # DEFINE MAPS HERE
     map0 = [
@@ -21,18 +23,18 @@ if __name__ == '__main__':
     ]
 
     map1 = [
-        (5., 2.5, 2.5, 3, 'sphere'),
-        #([-1.0, -1.0, -1.0], [-1.5, -1.5, -1.5], 'cube'),
-        ([-1.0, -1.0, -1.0], [8.5, -0.9, 8.5], 'cube'),
-        ([8.0, -1.0, -1.0], [8.5, 8.1, 8.5], 'cube'),
-        # ([2.0, 0.0, 0.0], [4.0, 4.0, 3.0], 'cube'),
-        # ([-3.0, -2.0, -1.0], [0.0, 3.0, 2.0], 'cube'),
-        # ([4.0, 0.0, 0.0], [6.0, 6.0, 4.0], 'cube')
+        #(5., 2.5, 2.5, 3, 'sphere'),
+        (7.0, 5.5, 5., 1, 'sphere'), # O3
+        (12.0, 8., 5., 2, 'sphere'), # O4
+        ([10.0, 2.0, 0.0], [4.0, 4.0, 10.0], 'cube'), # O1
+        ([18.0, 6.0, 0.0], [14.0,12.0, 10.0], 'cube'),  # O2
+        ([19.0, 14.0, 0.0], [7.0, 14.5, 10.0], 'cube'),  # O5
+
     ]
 
     obstacles = map1
 
-    # min, max, 'cube'
+    # min, max, 'cube' ( y, x, z)
     # x, y, z, radius
 
     # RRT, RRT Star, Biased RRT*
@@ -55,7 +57,7 @@ if __name__ == '__main__':
     goal = None
 
     # UNCOMMENT TO VIEW MAP
-    # plot_obstacle_map(obstacles)
+    plot_obstacle_map(obstacles)
 
     # UNCOMMENT TO RUN PLANNER
     start_prm = time.time() #record start time

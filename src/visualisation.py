@@ -96,6 +96,10 @@ def plot_graph(Graph, obstacles, startposition, endposition, RRT_time, found_pat
         print('The RRT generation took: '+str(round(RRT_time,2))+ 's')
         
     ax.set_box_aspect(aspect = (size_x/size_z,size_y/size_z,1))
+    ax.set_xlabel('$X$', fontsize=20)
+    ax.set_ylabel('$Y$', fontsize=20)
+    ax.set_zlabel('$Z$', fontsize=20)
+    #ax.can_zoom()
     #ax.set_aspect('equal', adjustable='box')
     plt.show()
 
@@ -110,7 +114,7 @@ def plot_obstacles_surface(obstacles, ax):
         elif obstacles[obstacle][-1] == 'cube':
             sizes = np.array(obstacles[obstacle][1]) - np.array(obstacles[obstacle][0])
             X,Y,Z = cuboid_data_surface(tuple(obstacles[obstacle][0]), sizes)
-            ax.plot_surface(X, Y, Z, color='b', alpha=0.8, zorder=5)
+            ax.plot_surface(X, Y, Z, color='b', alpha=0.25, zorder=5)
 
 def plot_obstacles(obstacles, ax):
     for obstacle in range(len(obstacles)):
@@ -123,13 +127,22 @@ def plot_obstacles(obstacles, ax):
         elif obstacles[obstacle][-1] == 'cube':
             sizes = np.array(obstacles[obstacle][1]) - np.array(obstacles[obstacle][0])
             data = cuboid_data(tuple(obstacles[obstacle][0]), sizes)
-            pc = Poly3DCollection(data, facecolors='k', linewidths=1, edgecolors='k',alpha=0.5, zorder=5)
+            pc = Poly3DCollection(data, facecolors='k', linewidths=1, edgecolors='k',alpha=0.25, zorder=5)
             ax.add_collection3d(pc)
 
 def plot_obstacle_map(obstacles):
 
     fig = plt.figure(figsize=(10, 10))
+
     ax = plt.axes(projection ='3d')
+    ax.set_xlabel('$X$', fontsize=20)
+    ax.set_ylabel('$Y$', fontsize=20)
+    ax.set_zlabel('$Z$', fontsize=20)
+
+    ax.set_xlim3d(0, 22)
+    ax.set_ylim3d(0, 12)
+    ax.set_zlim3d(0, 12)
+
 
     plot_obstacles(obstacles, ax)
 
