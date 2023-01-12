@@ -1,6 +1,6 @@
 from src.simulation import *
 
-from src.utils import dijkstra
+from src.utils import dijkstra, distance
 from src.rrt import iRRT_s, RRT, RRT_s
 from src.prm import PRM
 from gym_pybullet_drones.utils.utils import str2bool
@@ -56,6 +56,13 @@ if __name__ == "__main__":
         metavar="",
     )
     parser.add_argument(
+        "--anim",
+        default=False,
+        type=str2bool,
+        help="Whether to generate an animation from simulation results (default: False)",
+        metavar="",
+    )
+    parser.add_argument(
         "--gui",
         default=DEFAULT_GUI,
         type=str2bool,
@@ -73,6 +80,7 @@ if __name__ == "__main__":
     settings = SimulationSettings(
         gui=args.gui,
         plot=args.plot,
+        animation=args.anim,
         user_debug_gui=args.user_debug_gui,
     )
 
@@ -203,6 +211,12 @@ if __name__ == "__main__":
 
     # run simulation
     position, t = run(settings, target_path, obstacles)
+
+    # compare length of planned & taken path
+    length_planned = sum([distance(target_path[i], target_path[i+1]) for i in range(len(target_path)-1)])
+    length_actual = sum([distance(position[i], position[i+1]) for i in range(len(position)-1)]) + distance(position[-1], target_path[-1])
+
+    print(f"Length MPC path is {length_actual/length_planned * 100}% of length of planned path")
 
     # keep figures open
     input()

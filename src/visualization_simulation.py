@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from cycler import cycler
 from datetime import datetime
+from src.visualisation import plot_obstacles
+import math
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 
 def plot_all_from_logger(logger):
@@ -336,63 +339,78 @@ def cuboid_data(o, size=(1, 1, 1)):
     return np.array(x), np.array(y), np.array(z)
 
 
-def plot_3d_from_logger(logger, sphere_obstacles, box_obstacles):
-    """
-    Plot actual and reference path in a 3D figure
-    """
-    t = np.squeeze(logger.timestamps)
-
-    plt.rc(
-        "axes",
-        prop_cycle=(
-            cycler("color", ["g", "b", "y", "r"])
-            + cycler("linestyle", ["-", "--", ":", "-."])
-        ),
-    )
-    fig = plt.figure()
-    ax = fig.add_subplot(projection="3d")
-
+def plot_3d_at_percentage(ax, logger, obstacles, completion_rate=1):
+    # add reference and obstacles and actual at certain completion_rate
+    # to a plot
     j = 0
-    ax.plot(
-        logger.states[j, 0, :],
-        logger.states[j, 1, :],
-        logger.states[j, 2, :],
-        label=r"$r$",
-    )
     ax.plot(
         logger.controls[j, 0, :],
         logger.controls[j, 1, :],
         logger.controls[j, 2, :],
-        label=r"$r_{ref}$",
+        label="reference",
+        color="b",
+        linestyle="--",
     )
+    i = int(completion_rate * logger.states[j].shape[1])
+    ax.plot(
+        logger.states[j, 0, :i],
+        logger.states[j, 1, :i],
+        logger.states[j, 2, :i],
+        label="actual",
+        color="g",
+        linestyle="-",
+    )
+    plot_obstacles(obstacles, ax)
 
-    # Plot obstacles
-    for obs in sphere_obstacles:
-        u, v = np.mgrid[0 : 2 * np.pi : 20j, 0 : np.pi : 10j]
-        x = np.cos(u) * np.sin(v) * obs[3]
-        y = np.sin(u) * np.sin(v) * obs[3]
-        z = np.cos(v) * obs[3]
-        ax.plot_surface(x + obs[0], y + obs[1], z + obs[2], color="r", alpha=0.5)
-
-    for obs in box_obstacles:
-        size = obs[3:6]
-        xyz = np.array(obs[0:3]) - np.array(size) / 2
-        X, Y, Z = cuboid_data(tuple(xyz), size)
-        ax.plot_surface(X, Y, Z, rstride=1, cstride=1, alpha=0.25, zorder=5)
-
+    ax.margins(0.01)
     ax.set_box_aspect((1, 1, 1))
     set_axes_equal(ax)
+    ax.get_xaxis().set_ticklabels([])
+    ax.get_yaxis().set_ticklabels([])
+    ax.get_zaxis().set_ticklabels([])
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
     ax.legend()
-    plt.savefig(
-        os.path.join(
-            "saved_results_simulation",
-            datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "output_2.png",
+
+
+def plot_3d_from_logger(logger, obstacles, createAnimation=False):
+    """
+    Plot actual and reference path in a 3D figure
+    """
+    fig = plt.figure()
+    ax = fig.add_subplot(projection="3d")
+    fig.tight_layout()
+
+    if not createAnimation:
+        plot_3d_at_percentage(ax, logger, obstacles, completion_rate=1)
+        plt.savefig(
+            os.path.join(
+                "saved_results_simulation",
+                datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "output_2.png",
+            )
         )
-    )
-    fig.show()
+        fig.show()
+    else:
+        max_frame = 100
+        az_start = -30
+        az_end = 10
+
+        def animate(frame):
+            p = (frame + 1) / max_frame
+            ax.clear()
+            plot_3d_at_percentage(ax, logger, obstacles, completion_rate=p)
+            ax.view_init(elev=12.0, azim=az_start + (az_end - az_start) * p)
+
+        ani = FuncAnimation(fig, animate, frames=max_frame, interval=25, repeat=True)
+        ani.save(
+            os.path.join(
+                "saved_results_simulation",
+                datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "output_3.gif",
+            ),
+            dpi=300,
+            writer=PillowWriter(fps=25),
+        )
 
 
 def get_trajectory_from_logger(logger):

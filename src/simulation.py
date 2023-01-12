@@ -47,6 +47,7 @@ class SimulationSettings:
     gui: bool = DEFAULT_GUI
     record_video: bool = DEFAULT_RECORD_VISION
     plot: bool = DEFAULT_PLOT
+    animation: bool = False
     user_debug_gui: bool = DEFAULT_USER_DEBUG_GUI
     aggregate: bool = DEFAULT_AGGREGATE
     obstacles: bool = DEFAULT_OBSTACLES
@@ -111,20 +112,31 @@ def setup_simulation(
     return env, pyb_client, logger, aggr_phy_steps
 
 
-def convert_obstacles(obstacles, obstacle_scale_factor):
+def scale_obstacles(obstacles, scale_factor):
+    scaled_obstacles = []
+    for o in obstacles:
+        if o[-1] == "sphere":
+            values = np.array(o[:-1]) * scale_factor
+            scaled_obstacles.append(list(values) + ["sphere"])
+        elif o[-1] == "cube":
+            scaled_obstacles.append(
+                [list(np.array(x) * scale_factor) for x in o[:-1]] + ["cube"]
+            )
+    return scaled_obstacles
+
+
+def convert_obstacles(obstacles):
     sphere_obstacles = []
     box_obstacles = []
     for o in obstacles:
         if o[-1] == "sphere":
-            values = np.array(o[:-1]) * obstacle_scale_factor
+            values = np.array(o[:-1])
             sphere_obstacles.append(values)
         elif o[-1] == "cube":
             corner0 = np.array(o[0])
             corner1 = np.array(o[1])
             xyz = (corner0 + corner1) / 2
             size = np.abs(corner0 - corner1)
-            xyz = xyz * obstacle_scale_factor
-            size = size * obstacle_scale_factor
             box_obstacles.append(tuple(xyz) + tuple(size))
     return sphere_obstacles, box_obstacles
 
@@ -138,7 +150,8 @@ def run(settings: SimulationSettings, target_path, obstacles, scale_factor=0.1 /
         raise ValueError("Target path is incorrect type/dimension")
     target_path = np.array(target_path) * scale_factor
 
-    sphere_obstacles, box_obstacles = convert_obstacles(obstacles, scale_factor)
+    obstacles = scale_obstacles(obstacles, scale_factor)
+    sphere_obstacles, box_obstacles = convert_obstacles(obstacles)
 
     # Create time parametrized trajectory from given path
     max_velocity = 1  # m/s
@@ -284,11 +297,13 @@ def run(settings: SimulationSettings, target_path, obstacles, scale_factor=0.1 /
         logger.save_as_csv("pid")  # Optional CSV save
     if settings.plot:
         plot_translation_from_logger(logger, trajectory)
-        plot_3d_from_logger(logger, sphere_obstacles, box_obstacles)
+        plot_3d_from_logger(logger, obstacles, createAnimation=False)
+        if settings.animation:
+            plot_3d_from_logger(logger, obstacles, createAnimation=True)
 
     if settings.log or settings.plot:
         pos, t = get_trajectory_from_logger(logger)
         pos = pos / scale_factor
-        return pos, t
+        return [tuple(x) for x in np.transpose(pos)], t
     else:
         return None, None
