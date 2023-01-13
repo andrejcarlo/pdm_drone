@@ -143,22 +143,17 @@ class PRM:
                 start_line = p
                 end_line = neighbour
                 # check if point is inside an obstacle
-                if not in_obstacle(self.allObs, start_line) and not in_obstacle(
-                    self.allObs, end_line
-                ):
-                    # check if connection is collision free with all obstacles
-                    if not trough_obstacle(self.allObs, Line(start_line, end_line)):
-                        self.collisionFreePaths = np.concatenate(
-                            (
-                                self.collisionFreePaths,
-                                p.reshape(1, 3),
-                                neighbour.reshape(1, 3),
-                            ),
-                            axis=0,
-                        )
+                # check if connection is collision free with all obstacles
+                if not trough_obstacle(self.allObs, Line(start_line, end_line)):
+                    self.collisionFreePaths = np.concatenate(
+                        (
+                            self.collisionFreePaths,
+                            p.reshape(1, 3),
+                            neighbour.reshape(1, 3),
+                        ),
+                        axis=0,
+                    )
 
-                        new_start_idx = self.graph.add_vertex(p)
-                        new_end_idx = self.graph.add_vertex(neighbour)
-                        self.graph.add_edge(
-                            new_start_idx, new_end_idx, distances[i, j + 1]
-                        )
+                    new_start_idx = self.graph.add_vertex(p)
+                    new_end_idx = self.graph.add_vertex(neighbour)
+                    self.graph.add_edge(new_start_idx, new_end_idx, distances[i, j + 1])

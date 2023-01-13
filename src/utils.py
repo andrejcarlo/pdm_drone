@@ -76,21 +76,6 @@ def intersection(obstacle, line):
 
 def line_box_intersection(line_start, line_end, box_min, box_max):
     # Check if the line start and end are inside the box
-    if (
-        line_start[0] >= box_min[0]
-        and line_start[0] <= box_max[0]
-        and line_start[1] >= box_min[1]
-        and line_start[1] <= box_max[1]
-        and line_start[2] >= box_min[2]
-        and line_start[2] <= box_max[2]
-        and line_end[0] >= box_min[0]
-        and line_end[0] <= box_max[0]
-        and line_end[1] >= box_min[1]
-        and line_end[1] <= box_max[1]
-        and line_end[2] >= box_min[2]
-        and line_end[2] <= box_max[2]
-    ):
-        return True
 
     # Initialize the intersection points to be the start and end of the line
     intersection_start = line_start
@@ -110,7 +95,7 @@ def line_box_intersection(line_start, line_end, box_min, box_max):
             intersection_start = [
                 line_start[j] + t * (line_end[j] - line_start[j]) for j in range(3)
             ]
-        # Check for intersection with the max face of the box
+        # Check for intersection with the min face of the box
         if intersection_end[i] < box_min[i]:
             t = (box_min[i] - line_start[i]) / (line_end[i] - line_start[i])
             intersection_end = [
@@ -125,19 +110,15 @@ def line_box_intersection(line_start, line_end, box_min, box_max):
 
     # Check if the intersection is valid
     if (
-        intersection_start[0] < box_min[0]
-        or intersection_start[0] > box_max[0]
-        or intersection_start[1] < box_min[1]
-        or intersection_start[1] > box_max[1]
-        or intersection_start[2] < box_min[2]
-        or intersection_start[2] > box_max[2]
-        or intersection_end[0] < box_min[0]
-        or intersection_end[0] > box_max[0]
-        or intersection_end[1] < box_min[1]
-        or intersection_end[1] > box_max[1]
-        or intersection_end[2] < box_min[2]
-        or intersection_end[2] > box_max[2]
+        (intersection_start[0] < box_min[0] or intersection_start[0] > box_max[0])
+        or (intersection_start[1] < box_min[1] or intersection_start[1] > box_max[1])
+        or (intersection_start[2] < box_min[2] or intersection_start[2] > box_max[2])
+        or (intersection_end[0] < box_min[0] or intersection_end[0] > box_max[0])
+        or (intersection_end[1] < box_min[1] or intersection_end[1] > box_max[1])
+        or (intersection_end[2] < box_min[2] or intersection_end[2] > box_max[2])
     ):
+        return False
+    elif (np.array(intersection_end) == np.array(intersection_start)).all():
         return False
     else:
         return True  # or intersection_start, intersection_end

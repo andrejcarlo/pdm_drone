@@ -8,6 +8,8 @@ import argparse
 import numpy as np
 import json
 
+from src.visualisation import plot_graph
+
 
 if __name__ == "__main__":
     # Define and parse (optional) arguments for the script
@@ -222,7 +224,7 @@ if __name__ == "__main__":
     print("\nPath has been found!")
     print("Now running MPC with the target_path found\n")
 
-     # --------- MPC PARAMS ----------
+    # --------- MPC PARAMS ----------
     max_speed = 1  # m/s
     min_speed = 0.3
     max_acceleration = 1.5
