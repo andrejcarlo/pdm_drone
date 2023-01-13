@@ -25,15 +25,15 @@ if __name__ == "__main__":
         ([1.0, 2.0, 1.0], [9.0, 4.0, 9.0], "cube"),  # O1
         ([11.0, 6.0, 1.0], [17.0, 12.0, 9.0], "cube"),  # O2
         ([5.0, 14.0, 1.0], [7.5, 14.5, 9.0], "cube"),  # O5
-        ([20.0, 0.0, 0], [0.0, 15.0, 0.5], "cube"),  # bottom_plate
-        ([20.0, 0.0, 10.0], [0.0, 15.0, 10.5], "cube"),  # top_plate
+        ([0.0, 0.0, 0], [20.0, 15.0, 0.5], "cube"),  # bottom_plate
+        ([0.0, 0.0, 10.0], [20.0, 15.0, 10.5], "cube"),  # top_plate
     ]
 
     obstacles = map_1
     endposition = (19.0, 0.0, 2)
     startposition = (2.5, 8.6, 7.7)
 
-    iterations = 5
+    iterations = 10
     threshold = 2.0  # for marking the end position as found
     stepsize = 1.0  # stepsize of newly generated vertices
 
@@ -45,6 +45,8 @@ if __name__ == "__main__":
     # path length/optimal length
     goal = None
 
+    # plot_obstacle_map(obstacles, startposition, endposition, set_limits=False)
+
     # Run PRM implementation
     start_prm = time.time()
     prm_planner = PRM(
@@ -53,6 +55,8 @@ if __name__ == "__main__":
         start=startposition,
         destination=endposition,
         iterations=iterations,
+        goal=goal,
+        fix_room_size=True,
     )
     prm_planner.runPRM()
     prm_time = time.time() - start_prm

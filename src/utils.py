@@ -75,6 +75,23 @@ def intersection(obstacle, line):
 
 
 def line_box_intersection(line_start, line_end, box_min, box_max):
+    # Check if the line start and end are inside the box
+    if (
+        line_start[0] >= box_min[0]
+        and line_start[0] <= box_max[0]
+        and line_start[1] >= box_min[1]
+        and line_start[1] <= box_max[1]
+        and line_start[2] >= box_min[2]
+        and line_start[2] <= box_max[2]
+        and line_end[0] >= box_min[0]
+        and line_end[0] <= box_max[0]
+        and line_end[1] >= box_min[1]
+        and line_end[1] <= box_max[1]
+        and line_end[2] >= box_min[2]
+        and line_end[2] <= box_max[2]
+    ):
+        return True
+
     # Initialize the intersection points to be the start and end of the line
     intersection_start = line_start
     intersection_end = line_end
@@ -123,7 +140,7 @@ def line_box_intersection(line_start, line_end, box_min, box_max):
     ):
         return False
     else:
-        return True  # or intersection_end, intersection_start
+        return True  # or intersection_start, intersection_end
 
 
 def pointInAABB(vecPoint, cubeMin, cubeMax):
@@ -137,7 +154,6 @@ def pointInAABB(vecPoint, cubeMin, cubeMax):
         and vecPoint[2] >= cubeMin[2]
         and vecPoint[2] <= cubeMax[2]
     ):
-
         return True
 
     # If not, then return false

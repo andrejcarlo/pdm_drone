@@ -97,7 +97,7 @@ class PRM:
     def sample_points(self):
         self.coordsList = np.random.rand(self.numOfCoords, 3)
 
-        fix_room_factor = 1.0 if self.graph.fixed_room_size else -1.0
+        fix_room_factor = 0.5 if self.graph.fixed_room_size else -0.5
 
         # map each resampled of the random sampled points (0.,1.) to the searchbox area
         self.coordsList[:, 0] = (

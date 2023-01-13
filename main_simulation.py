@@ -76,8 +76,8 @@ if __name__ == "__main__":
             ([1.0, 2.0, 1.0], [9.0, 4.0, 9.0], "cube"),  # O1
             ([11.0, 6.0, 1.0], [17.0, 12.0, 9.0], "cube"),  # O2
             ([5.0, 14.0, 1.0], [7.5, 14.5, 9.0], "cube"),  # O5
-            ([20.0, 0.0, 0], [0.0, 15.0, 0.5], "cube"),  # bottom_plate
-            ([20.0, 0.0, 10.0], [0.0, 15.0, 10.5], "cube"),  # top_plate
+            ([0.0, 0.0, 0], [20.0, 15.0, 0.5], "cube"),  # bottom_plate
+            ([0.0, 0.0, 10.0], [20.0, 15.0, 10.5], "cube"),  # top_plate
         ]
     elif args.room == 2:
         obstacles = [
@@ -90,8 +90,8 @@ if __name__ == "__main__":
             ([2.0, 3.0, 2.0], [8.0, 5.0, 8.0], "cube"),  # O1
             ([12.0, 7.0, 2.0], [16.0, 11.0, 8.0], "cube"),  # O2
             ([6.0, 14.0, 2.0], [8.0, 14.5, 8.0], "cube"),  # O5
-            ([20.0, 0.0, 0.0], [0.0, 15.0, 0.5], "cube"),  # bottom_plate
-            ([20.0, 0.0, 10.0], [0.0, 15.0, 10.5], "cube"),  # top_plate
+            ([0.0, 0.0, 0], [20.0, 15.0, 0.5], "cube"),  # bottom_plate
+            ([0.0, 0.0, 10.0], [20.0, 15.0, 10.5], "cube"),  # top_plate
         ]
     elif args.room == 3:
         obstacles = [
@@ -104,8 +104,8 @@ if __name__ == "__main__":
             ([2.0, 3.0, 2.0], [8.0, 5.0, 8.0], "cube"),  # O1
             ([12.0, 7.0, 2.0], [16.0, 11.0, 8.0], "cube"),  # O2
             ([6.0, 14.0, 2.0], [8.0, 14.5, 8.0], "cube"),  # O5
-            ([20.0, 0.0, 0.0], [0.0, 15.0, 0.5], "cube"),  # bottom_plate
-            ([20.0, 0.0, 10.0], [0.0, 15.0, 10.5], "cube"),  # top_plate
+            ([0.0, 0.0, 0], [20.0, 15.0, 0.5], "cube"),  # bottom_plate
+            ([0.0, 0.0, 10.0], [20.0, 15.0, 10.5], "cube"),  # top_plate
             ([0.5, 10.0, 0.5], [3.5, 14.0, 4.0], "cube"),  # O11
             ([15.0, 12.0, 2.0], [18.0, 14.5, 9.0], "cube"),  # O12
             ([9.0, 0.5, 0.5], [11.0, 4.0, 3.5], "cube"),  # O13
@@ -137,9 +137,9 @@ if __name__ == "__main__":
     bias = 0.2
     # Distance from obstacle to sample with bias
     rand_radius = 0.5
-    
+
     # number of samples for PRM to use
-    n_samples_prm = 200
+    n_samples_prm = 5000
 
     config = {
         "Start": startposition,
@@ -163,7 +163,9 @@ if __name__ == "__main__":
             obstacles=obstacles_expanded,
             start=startposition,
             destination=endposition,
-            )
+            iterations=iterations,
+            goal=goal,
+        )
         prm_planner.runPRM()
 
         if prm_planner.solutionFound:
