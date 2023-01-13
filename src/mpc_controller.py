@@ -348,6 +348,8 @@ class MPCControl(BaseControl):
         )[:, next_goal_indices]
         self.problem.param_dict["x_init"].value = cur_state
         self.problem.solve(solver=cp.ECOS)
+        if not (self.problem.status == "optimal" or self.problem.status == "inaccurate optimal"):
+            raise RuntimeError(f"MPC solver did not find a solution, due to it being {self.problem.status}")
 
         # Convert small-signal u into large-signal rpm
         rpm = self._computeRPMfromInputs(self.problem.var_dict["u"].value[:, 0])
