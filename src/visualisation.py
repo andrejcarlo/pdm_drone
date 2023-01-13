@@ -71,6 +71,7 @@ def plot_graph(
     found_path=None,
     dijkstra_time=None,
     visualize_all=False,
+    set_aspect=True,
 ):
     fig = plt.figure(figsize=(10, 10))
     ax = plt.axes(projection="3d")
@@ -95,14 +96,14 @@ def plot_graph(
         Graph.startposition[1],
         Graph.startposition[2],
         s=50,
-        color="y",
+        color="g",
     )
     ax.scatter(
         Graph.endposition[0],
         Graph.endposition[1],
         Graph.endposition[2],
         s=50,
-        color="y",
+        color="r",
     )
 
     for edge in Graph.edges:
@@ -140,7 +141,8 @@ def plot_graph(
         print("The RRT generation took: " + str(round(RRT_time, 2)) + "s")
 
     # print(size)
-    ax.set_box_aspect(aspect=(size_x / size_z, size_y / size_z, 1))
+    if set_aspect:
+        ax.set_box_aspect(aspect=(size_x / size_z, size_y / size_z, 1))
     ax.set_xlabel("$X$", fontsize=20)
     ax.set_ylabel("$Y$", fontsize=20)
     ax.set_zlabel("$Z$", fontsize=20)

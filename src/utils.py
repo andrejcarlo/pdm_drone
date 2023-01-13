@@ -12,9 +12,13 @@ def distance(x, y):
 def dijkstra(Graph):
 
     # Dijkstra algorithm for finding shortest path from start position to end, from MIT License Copyright (c) 2019 Fanjin Zeng
-
-    srcIdx = Graph.indices[Graph.startposition]
-    dstIdx = Graph.indices[Graph.endposition]
+    try:
+        srcIdx = Graph.indices[Graph.startposition]
+        dstIdx = Graph.indices[Graph.endposition]
+    except KeyError:
+        # start and end could not be connected to any node, they did not make it in the graph (PRM)
+        # return empty path
+        return [(0, 0, 0)]
 
     # build dijkstra
     nodes = list(Graph.connections.keys())
@@ -70,31 +74,56 @@ def intersection(obstacle, line):
     return True
 
 
-# adapted from intersectCube in https://github.com/evanw/webgl-path-tracing/blob/master/webgl-path-tracing.js
-# compute the near and far intersections of the cube (stored in the x and y components) using the slab method
-# no intersection means vec.x > vec.y (really tNear > tFar)
-def intersectAABB(rayOrigin, rayDir, rayEnd, cubeMin, cubeMax):
-    """
-    rayOrigin, rayDir, cubeMin, cubeMax: vec3
-    """
-    tMin = (cubeMin - rayOrigin) / rayDir
-    # vec3
-    tMax = (cubeMax - rayOrigin) / rayDir
-    # vec3
-    t1 = np.minimum(tMin, tMax)
-    # vec3
-    t2 = np.maximum(tMin, tMax)
-    # vec3
-    tNear = max(max(t1[0], t1[1]), t1[2])
-    # float
-    tFar = min(min(t2[0], t2[1]), t2[2])
-    # float
+def line_box_intersection(line_start, line_end, box_min, box_max):
+    # Initialize the intersection points to be the start and end of the line
+    intersection_start = line_start
+    intersection_end = line_end
 
-    # if tNear < tFar and not ((distance(t1,rayOrigin) > distance(rayOrigin, rayEnd)) or (distance(t2,rayOrigin) > distance(rayOrigin, rayEnd))):
-    if tNear < tFar:
-        return True
+    # Check for intersection with each face of the box
+    for i in range(3):
+        # Check for intersection with the min face of the box
+        if intersection_start[i] < box_min[i]:
+            t = (box_min[i] - line_start[i]) / (line_end[i] - line_start[i])
+            intersection_start = [
+                line_start[j] + t * (line_end[j] - line_start[j]) for j in range(3)
+            ]
+        # Check for intersection with the max face of the box
+        if intersection_start[i] > box_max[i]:
+            t = (box_max[i] - line_start[i]) / (line_end[i] - line_start[i])
+            intersection_start = [
+                line_start[j] + t * (line_end[j] - line_start[j]) for j in range(3)
+            ]
+        # Check for intersection with the max face of the box
+        if intersection_end[i] < box_min[i]:
+            t = (box_min[i] - line_start[i]) / (line_end[i] - line_start[i])
+            intersection_end = [
+                line_start[j] + t * (line_end[j] - line_start[j]) for j in range(3)
+            ]
+        # Check for intersection with the max face of the box
+        if intersection_end[i] > box_max[i]:
+            t = (box_max[i] - line_start[i]) / (line_end[i] - line_start[i])
+            intersection_end = [
+                line_start[j] + t * (line_end[j] - line_start[j]) for j in range(3)
+            ]
 
-    return False
+    # Check if the intersection is valid
+    if (
+        intersection_start[0] < box_min[0]
+        or intersection_start[0] > box_max[0]
+        or intersection_start[1] < box_min[1]
+        or intersection_start[1] > box_max[1]
+        or intersection_start[2] < box_min[2]
+        or intersection_start[2] > box_max[2]
+        or intersection_end[0] < box_min[0]
+        or intersection_end[0] > box_max[0]
+        or intersection_end[1] < box_min[1]
+        or intersection_end[1] > box_max[1]
+        or intersection_end[2] < box_min[2]
+        or intersection_end[2] > box_max[2]
+    ):
+        return False
+    else:
+        return True  # or intersection_end, intersection_start
 
 
 def pointInAABB(vecPoint, cubeMin, cubeMax):
@@ -134,9 +163,8 @@ def trough_obstacle(obstacles, line):
             if intersection(obstacle, line):
                 return True
         elif obstacle[-1] == "cube":
-            line_intersects_cube = intersectAABB(
+            line_intersects_cube = line_box_intersection(
                 line.p0,
-                line.direction,
                 line.p1,
                 np.array(obstacle[0]),
                 np.array(obstacle[1]),

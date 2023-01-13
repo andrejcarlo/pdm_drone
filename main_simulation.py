@@ -137,6 +137,9 @@ if __name__ == "__main__":
     bias = 0.2
     # Distance from obstacle to sample with bias
     rand_radius = 0.5
+    
+    # number of samples for PRM to use
+    n_samples_prm = 200
 
     config = {
         "Start": startposition,
@@ -156,16 +159,16 @@ if __name__ == "__main__":
     # ----------- SELECT PLANNER -------------
     if args.planner == "PRM":
         prm_planner = PRM(
-            iterations,
+            n_samples_prm,
             obstacles=obstacles_expanded,
             start=startposition,
             destination=endposition,
-            goal=goal,
-        )
+            )
         prm_planner.runPRM()
 
         if prm_planner.solutionFound:
-            target_path = dijkstra(prm_planner.graph)
+            # no need to run dijkstra for PRM, PRM does it internally
+            target_path = prm_planner.found_path
         else:
             raise RuntimeError("No path found")
     else:

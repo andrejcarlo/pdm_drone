@@ -11,7 +11,7 @@ from src.utils import (
 
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
-import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 class PRM:
@@ -21,6 +21,7 @@ class PRM:
         obstacles,
         start,
         destination,
+        iterations=5000,
         goal=None,
         fix_room_size=False,
     ):
@@ -32,30 +33,19 @@ class PRM:
         self.graph = Graph(start, destination, fix_room_size=fix_room_size)
         self.solutionFound = False
         self.found_path = None
-        self.maxNumIterations = 5000
+        self.maxNumIterations = iterations
         self.goal = goal
         self.optimum_path_length = distance(start, destination)
         self.iterations = 0
 
-    def runPRM(self, initialRandomSeed=42, visualise=False):
-        seed = initialRandomSeed
-        self.iterations = 0
-
+    def runPRM(self, visualise=False):
         # do an initial check if start and end are inside obstacles
         if in_obstacle(self.allObs, self.start) or in_obstacle(
             self.allObs, self.destination
         ):
             raise Exception("Start/Goal have been initialized inside obstacles!")
 
-        while not self.solutionFound and (self.iterations < self.maxNumIterations):
-            print(
-                "PRM Iteration {}, with N:{}, Seed {}".format(
-                    self.iterations, self.numOfCoords, seed
-                )
-            )
-            # assign seed
-            np.random.seed(seed)
-
+        for i in tqdm(range(self.maxNumIterations)):
             # generate n random samples in the search area
             self.sample_points()
 
@@ -95,19 +85,21 @@ class PRM:
                     self.solutionFound = True
                     break
 
-            # reset and reiterate
-            seed = np.random.randint(1, 100000)
-            self.coordsList = np.array([])
-            self.graph = Graph(tuple(self.start), tuple(self.destination))
+            if i < (self.maxNumIterations - 1):
+                # reset and reiterate
+                np.random.seed(np.random.randint(1, 100000))
+                self.coordsList = np.array([])
+                self.graph = Graph(tuple(self.start), tuple(self.destination))
 
-            self.iterations += 1
+        # track number of iterations used
+        self.iterations = i
 
     def sample_points(self):
         self.coordsList = np.random.rand(self.numOfCoords, 3)
 
-        fix_room_factor = 1 if self.graph.fixed_room_size else -1
+        fix_room_factor = 1.0 if self.graph.fixed_room_size else -1.0
 
-        # map each resampled of the random sampled points (0.,1.) to the searchbox area 
+        # map each resampled of the random sampled points (0.,1.) to the searchbox area
         self.coordsList[:, 0] = (
             self.graph.searchbegin_x
             + fix_room_factor * self.coordsList[:, 0] * self.graph.searchboxsize_x * 2
