@@ -222,8 +222,34 @@ if __name__ == "__main__":
     print("\nPath has been found!")
     print("Now running MPC with the target_path found\n")
 
+     # --------- MPC PARAMS ----------
+    max_speed = 1  # m/s
+    min_speed = 0.3
+    max_acceleration = 1.5
+    sampling_time = 0.5
+    time_parametrize_method = "bangbang"  # "bangbang" or "const"
+    mpc_config = {
+        "Sampling time": sampling_time,
+        "Velocity profile": time_parametrize_method,
+        "Maximum/constant speed": max_speed,
+        "Minimum speed (only bang-bang)": min_speed,
+        "Maximum acceleration (only bang-bang)": max_acceleration,
+    }
+
+    print(f"Running simulation with parameters:")
+    print(json.dumps(mpc_config, indent=4))  # use json to pretty print config
+
     # --------- RUN MPC ----------
-    position, t = run(settings, target_path, obstacles)
+    position, t = run(
+        settings,
+        target_path,
+        obstacles,
+        max_speed=max_speed,
+        min_speed=min_speed,
+        max_acceleration=max_acceleration,
+        sampling_time=sampling_time,
+        time_parametrize_method=time_parametrize_method,
+    )
 
     # compare length of planned & taken path
     length_planned = sum(

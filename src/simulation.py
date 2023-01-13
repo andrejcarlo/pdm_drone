@@ -141,7 +141,17 @@ def convert_obstacles(obstacles):
     return sphere_obstacles, box_obstacles
 
 
-def run(settings: SimulationSettings, target_path, obstacles, scale_factor=0.1 / 0.5):
+def run(
+    settings: SimulationSettings,
+    target_path,
+    obstacles,
+    max_speed=1,  # m/s
+    min_speed=0.3,
+    max_acceleration=1.5,
+    sampling_time=0.5,
+    time_parametrize_method="bangbang",
+    scale_factor=0.1 / 0.5,
+):
     if not (
         isinstance(target_path, list)
         and len(target_path) >= 2
@@ -154,17 +164,22 @@ def run(settings: SimulationSettings, target_path, obstacles, scale_factor=0.1 /
     sphere_obstacles, box_obstacles = convert_obstacles(obstacles)
 
     # Create time parametrized trajectory from given path
-    max_velocity = 1  # m/s
-    controller_time_step = 0.5
-    trajectory_time_step = controller_time_step
-    trajectory = trajectory_from_path_bang_bang(
-        target_path,
-        max_velocity=max_velocity,
-        sampling_time=trajectory_time_step,
-        min_speed=0.3,
-        max_acceleration=1.5,
-    )
-    # trajectory = trajectory_from_path_const_vel(target_path, max_velocity=max_velocity, sampling_time=trajectory_time_step)
+    controller_time_step = sampling_time
+    trajectory_time_step = sampling_time
+    if time_parametrize_method == "bangbang":
+        trajectory = trajectory_from_path_bang_bang(
+            target_path,
+            max_velocity=max_speed,
+            sampling_time=trajectory_time_step,
+            min_speed=min_speed,
+            max_acceleration=max_acceleration,
+        )
+    elif time_parametrize_method == "const":
+        trajectory = trajectory_from_path_const_vel(
+            target_path, max_velocity=max_speed, sampling_time=trajectory_time_step
+        )
+    else:
+        raise ValueError('time_parametrize_method must be one of "bangbang" or "const"')
 
     # Inital drone position(s)
     init_xyzs = np.array(
