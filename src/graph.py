@@ -51,7 +51,7 @@ class Graph:
     def randpos(
         self, obstacles=None, rand_radius=None, bias=None, obstacle_bias=False
     ) -> tuple:
-        fix_room_factor = 1 if self.fixed_room_size else -1
+        fix_room_factor = 0.5 if self.fixed_room_size else -1
         if obstacle_bias == False:
             # create random values between 0 and 1
             x = random()
