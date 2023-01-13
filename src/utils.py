@@ -1,6 +1,8 @@
 from collections import deque
 import numpy as np
 from src.graph import Line
+import dataclasses
+import json
 
 # determine distance between 2 points
 def distance(x, y):
@@ -203,3 +205,29 @@ def in_ellipsoid(startposition, endposition, pos, path_length):
         return True
     else:
         return False
+
+
+def expand_obstacles(obstacles, margin):
+    obstacles_expanded = []
+    for x in obstacles:
+        if x[-1] == "sphere":
+            x = list(x)
+            x[3] = x[3] + margin
+            obstacles_expanded.append(tuple(x))
+        elif x[-1] == "cube":
+            c0 = np.array(x[0])
+            c1 = np.array(x[1])
+            mask = c0 < c1
+            c0[mask] -= margin
+            c0[np.logical_not(mask)] += margin
+            c1[mask] += margin
+            c1[np.logical_not(mask)] -= margin
+            obstacles_expanded.append((list(c0), list(c1), "cube"))
+    return obstacles_expanded
+
+
+class EnhancedJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+        return super().default(o)

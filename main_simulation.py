@@ -1,30 +1,12 @@
 from src.simulation import *
 
-from src.utils import dijkstra, distance
+from src.utils import dijkstra, distance, expand_obstacles, EnhancedJSONEncoder
 from src.rrt import iRRT_s, RRT, RRT_s
 from src.prm import PRM
 from gym_pybullet_drones.utils.utils import str2bool
 import argparse
 import numpy as np
-
-
-def expand_obstacles(obstacles, margin):
-    obstacles_expanded = []
-    for x in obstacles:
-        if x[-1] == "sphere":
-            x = list(x)
-            x[3] = x[3] + margin
-            obstacles_expanded.append(tuple(x))
-        elif x[-1] == "cube":
-            c0 = np.array(x[0])
-            c1 = np.array(x[1])
-            mask = c0 < c1
-            c0[mask] -= margin
-            c0[np.logical_not(mask)] += margin
-            c1[mask] += margin
-            c1[np.logical_not(mask)] -= margin
-            obstacles_expanded.append((list(c0), list(c1), "cube"))
-    return obstacles_expanded
+import json
 
 
 if __name__ == "__main__":
@@ -84,10 +66,7 @@ if __name__ == "__main__":
         user_debug_gui=args.user_debug_gui,
     )
 
-    endposition = (19.0, 0.0, 2)
-    startposition = (2.5, 8.6, 7.7)
-
-    # select map
+    # ----------- ROOM SELECTION ------------
     if args.room == 0:
         obstacles = [(10.0, 6, 2.5, 3, "sphere")]
     elif args.room == 1:
@@ -138,17 +117,43 @@ if __name__ == "__main__":
     margin = 0.5
     obstacles_expanded = expand_obstacles(obstacles, margin)
 
-    # planner parameters
+    # --------- PLANNER PARAMS ----------
+
+    endposition = (19.0, 0.0, 2)
+    startposition = (2.5, 8.6, 7.7)
+
+    # Threshold to goal (how close to stop to the goal)
     threshold = 2.0
+    # Distance between sampled points
     stepsize = 1.0
-    bias = 0.2
-    rand_radius = 0.5
-    sample_size = 3
-
+    # Set goal (path_length/optimum) to achieve, where optimum is euclidean distance start-end
     goal = 1.75
-    iterations = 1000
-    obstacle_bias = False
 
+    # Number of iterations
+    iterations = 1000
+    # Use obstacle bias
+    obstacle_bias = False
+    # How much bias towards sampling next to obstacles
+    bias = 0.2
+    # Distance from obstacle to sample with bias
+    rand_radius = 0.5
+
+    config = {
+        "Start": startposition,
+        "Goal": endposition,
+        "Iterations": iterations,
+        "Threshold": threshold,
+        "Step Size": stepsize,
+        "Length/Optimum Goal": goal,
+        "Using Bias": obstacle_bias,
+        "Bias": bias,
+        "Sample dist from obstacle": rand_radius,
+    }
+
+    print(f"Running planner {args.planner} in room {args.room} with parameters:")
+    print(json.dumps(config, indent=4))  # use json to pretty print config
+
+    # ----------- SELECT PLANNER -------------
     if args.planner == "PRM":
         prm_planner = PRM(
             iterations,
@@ -209,14 +214,27 @@ if __name__ == "__main__":
         else:
             raise RuntimeError("No path found")
 
-    # run simulation
+    print("\nPath has been found!")
+    print("Now running MPC with the target_path found\n")
+
+    # --------- RUN MPC ----------
     position, t = run(settings, target_path, obstacles)
 
     # compare length of planned & taken path
-    length_planned = sum([distance(target_path[i], target_path[i+1]) for i in range(len(target_path)-1)])
-    length_actual = sum([distance(position[i], position[i+1]) for i in range(len(position)-1)]) + distance(position[-1], target_path[-1])
+    length_planned = sum(
+        [
+            distance(target_path[i], target_path[i + 1])
+            for i in range(len(target_path) - 1)
+        ]
+    )
+    length_actual = sum(
+        [distance(position[i], position[i + 1]) for i in range(len(position) - 1)]
+    ) + distance(position[-1], target_path[-1])
 
-    print(f"Length MPC path is {length_actual/length_planned * 100}% of length of planned path")
+    print("\n \n ============= FINAL RESULTS ARE ============= ")
+    print(
+        f"Length MPC path is {length_actual/length_planned * 100}% of length of planned path"
+    )
 
     # keep figures open
     input()

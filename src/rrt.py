@@ -10,6 +10,7 @@ from src.utils import (
 )
 
 import numpy as np
+from tqdm import tqdm
 
 # RRT algorithm
 def RRT(
@@ -31,10 +32,10 @@ def RRT(
     # for a length goal, continue for many iterations
     if goal is not None:
         iterations = 10000
-    for i in range(iterations):
+    for i in tqdm(range(iterations)):
         # sample a random position
         randpos = RRT_Graph.randpos(obstacles, rand_radius, bias, obstacle_bias)
-        
+
         # check whether goal length is reached if specified
         if RRT_Graph.found_path and goal is not None:
             found_path = dijkstra(RRT_Graph)
@@ -90,7 +91,7 @@ def RRT_s(
     stepsize,
     goal,
     fix_room_size=False,
-):  
+):
     # initialize graph
     RRT_Graph = Graph(startposition, endposition, fix_room_size=fix_room_size)
     # determine gamma factor for rewiring radius
@@ -99,10 +100,10 @@ def RRT_s(
     # for a length goal, continue for many iterations
     if goal is not None:
         iterations = 5000
-    for i in range(iterations):
+    for i in tqdm(range(iterations)):
         # sample a random position
         randpos = RRT_Graph.randpos(obstacles, rand_radius, bias, obstacle_bias)
-        
+
         # check whether goal length is reached if specified
         if RRT_Graph.found_path and goal is not None:
             found_path = dijkstra(RRT_Graph)
@@ -199,11 +200,10 @@ def iRRT_s(
     # for a length goal, continue for many (infinite) iterations
     if goal is not None:
         iterations = 5000
-    for i in range(iterations):
-        print("Iteration ", i)
+    for i in tqdm(range(iterations)):
         # sample a random position
         randpos = RRT_Graph.randpos(obstacles, rand_radius, bias, obstacle_bias)
-        
+
         # check what the shortest path length is
         if RRT_Graph.found_path:
             found_path = dijkstra(RRT_Graph)
