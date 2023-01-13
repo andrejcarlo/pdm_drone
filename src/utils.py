@@ -256,3 +256,12 @@ class EnhancedJSONEncoder(json.JSONEncoder):
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
         return super().default(o)
+
+
+def validateObstacles(obstacles):
+    for idx, o in enumerate(obstacles):
+        if o[-1] == "cube":
+            if any(np.array(o[0]) > np.array(o[1])):
+                raise ValueError(
+                    f"{idx+1}-th obstacles is invalid: All coordinates of the first corner must be smaller than the coordinates of the second corner."
+                )

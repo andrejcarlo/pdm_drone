@@ -1,6 +1,6 @@
 from src.simulation import *
 
-from src.utils import dijkstra, distance, expand_obstacles, EnhancedJSONEncoder
+from src.utils import dijkstra, distance, expand_obstacles, validateObstacles, EnhancedJSONEncoder
 from src.rrt import iRRT_s, RRT, RRT_s
 from src.prm import PRM
 from gym_pybullet_drones.utils.utils import str2bool
@@ -88,7 +88,7 @@ if __name__ == "__main__":
             (8.5, 8.0, 8.0, 1.5, "sphere"),  # O6
             (13.5, 3.5, 3.0, 2, "sphere"),  # O7
             (18.5, 2.0, 2.0, 1.5, "sphere"),  # O8
-            ([9.5, 8.5, 2.0], [11.5, 4.5, 6.5], "cube"),  # O9
+            ([9.5, 4.5, 2.0], [11.5, 8.5, 6.5], "cube"),  # O9
             ([2.0, 3.0, 2.0], [8.0, 5.0, 8.0], "cube"),  # O1
             ([12.0, 7.0, 2.0], [16.0, 11.0, 8.0], "cube"),  # O2
             ([6.0, 14.0, 2.0], [8.0, 14.5, 8.0], "cube"),  # O5
@@ -102,7 +102,7 @@ if __name__ == "__main__":
             (8.5, 8.0, 8.0, 1.5, "sphere"),  # O6
             (13.5, 3.5, 3.0, 2, "sphere"),  # O7
             (18.5, 2.0, 2.0, 1.5, "sphere"),  # O8
-            ([9.5, 8.5, 2.0], [11.5, 4.5, 6.5], "cube"),  # O9
+            ([9.5, 4.5, 2.0], [11.5, 8.5, 6.5], "cube"),  # O9
             ([2.0, 3.0, 2.0], [8.0, 5.0, 8.0], "cube"),  # O1
             ([12.0, 7.0, 2.0], [16.0, 11.0, 8.0], "cube"),  # O2
             ([6.0, 14.0, 2.0], [8.0, 14.5, 8.0], "cube"),  # O5
@@ -114,6 +114,9 @@ if __name__ == "__main__":
             ([17.0, 4.0, 5.5], [20.0, 7.0, 9.0], "cube"),  # O14
             ([4.0, 9.0, 2.5], [7.0, 12.0, 6.5], "cube"),  # O15
         ]
+
+    # check that obstacle definitions are valid
+    validateObstacles(obstacles)
 
     # add obstacle margin
     margin = 0.5
