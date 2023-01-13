@@ -26,6 +26,6 @@ pip3 install -e .
 
 - Full simulation (Planning & MPC):
 ``` bash
-python3 main_simulation.py
+python3 main_simulation.py (--room 0...3) (--planner RRT,RRT_s,iRRT_s,PRM)
 ```
 - planning applications ((B)RRT, (B)RRT*, (B)iRRT*, PRM)
