@@ -350,6 +350,7 @@ def plot_3d_at_percentage(ax, logger, obstacles, completion_rate=1):
         label="reference",
         color="b",
         linestyle="--",
+        zorder = 10,
     )
     i = int(completion_rate * logger.states[j].shape[1])
     ax.plot(
@@ -359,6 +360,7 @@ def plot_3d_at_percentage(ax, logger, obstacles, completion_rate=1):
         label="actual",
         color="g",
         linestyle="-",
+        zorder = 10,
     )
     plot_obstacles(obstacles, ax)
 
@@ -384,6 +386,7 @@ def plot_3d_from_logger(logger, obstacles, createAnimation=False):
 
     if not createAnimation:
         plot_3d_at_percentage(ax, logger, obstacles, completion_rate=1)
+        ax.view_init(elev=12.0, azim=-20)
         plt.savefig(
             os.path.join(
                 "saved_results_simulation",
