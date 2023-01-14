@@ -137,7 +137,7 @@ if __name__ == "__main__":
     # Number of iterations
     iterations = 1000
     # Use obstacle bias
-    obstacle_bias = False
+    obstacle_bias = True
     # How much bias towards sampling next to obstacles
     bias = 0.2
     # Distance from obstacle to sample with bias
