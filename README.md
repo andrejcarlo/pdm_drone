@@ -7,11 +7,30 @@ Group members:
 
 ## About this repository
 
-Say here what we implemented and what we sourced, what libraries we used, etc.
+This repository encapsulates a quad-rotor motion planning stack with various implementations for offline planning ((biased) RRT, (biased) RRT*, (biased) informed RRT*, PRM) and online MPC control. This stack is integrated in a physics simulation with multiple environments. On top of that evaluation scripts and results are provided.
 
-## Setting up python environemnt
+<img src="saved_results_simulation/room_2_72-5percent.gif" alt="room 2 animation" width="350">
 
-Setup the conda environemnt using
+This repository was developed using Python 3.8. Its dependencies are:
+- NumPy
+- Matplotlib
+- scikit-learn
+- CVXPY
+- gym-pybullet-drones (v1.0.0)
+- tqdm
+- ipykernel
+
+The repository is structured as follows.
+- `src/` contains the main code
+- `main_simulation.py` executes the full planning and control stack in a physics simulation
+- `main_rrt.py`, `main_prm.py` and `main_rooms.py` show their respective planning part
+- the Jupyter notebooks contain code for evaluation of the planning algorithms
+- `saved_results`, `saved_results_hole`, `saved_results_simulation` and `plots` contain main evaluation data
+- `linearize_quadrotor_model.m` symbolically linearizes a quad-rotor model
+
+## Setting up python environment
+
+Set up the conda environment using
 ``` bash
 conda env create -f environment.yml
 conda activate pdm_drone
@@ -28,4 +47,4 @@ pip3 install -e .
 ``` bash
 python3 main_simulation.py (--room 0...3) (--planner RRT,RRT_s,iRRT_s,PRM)
 ```
-- planning applications ((B)RRT, (B)RRT*, (B)iRRT*, PRM)
+- Planning applications alone ((B)RRT, (B)RRT*, (B)iRRT*, PRM): `main_rrt.py` and `main_prm.py`
