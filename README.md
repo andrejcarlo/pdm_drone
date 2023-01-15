@@ -9,7 +9,8 @@ Group members:
 
 This repository encapsulates a quad-rotor motion planning stack with various implementations for offline planning ((biased) RRT, (biased) RRT*, (biased) informed RRT*, PRM) and online MPC control. This stack is integrated in a physics simulation with multiple environments. On top of that evaluation scripts and results are provided.
 
-<img src="saved_results_simulation/room_2_72-5percent.gif" alt="room 2 animation" width="350">
+<img src="saved_results_simulation/room_2_72-5percent.gif" alt="room 2 animation" width="700">
+<img src="saved_results_simulation/20230114_202129.gif" alt="mpc pybullet demo", width=700>
 
 This repository was developed using Python 3.8. Its dependencies are:
 - NumPy
